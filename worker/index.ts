@@ -1,10 +1,16 @@
 // @worker-entry
 import { handleSketch } from './routes/sketch'
+import { getAssetFromKV, NotFoundError } from '@cloudflare/kv-asset-handler'
+// @ts-expect-error — injected by wrangler at build time for [site] config
+import manifestJSON from '__STATIC_CONTENT_MANIFEST'
+
+const assetManifest = JSON.parse(manifestJSON)
 
 export interface Env {
   ANTHROPIC_API_KEY: string
   KV_SESSIONS: KVNamespace
   ENVIRONMENT: string
+  __STATIC_CONTENT: KVNamespace
 }
 
 export default {
@@ -37,14 +43,45 @@ export default {
         headers: { 'Content-Type': 'application/json' }
       })
     } else {
-      response = new Response(JSON.stringify({ error: 'Not found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' }
-      })
+      // @handle-static-assets
+      try {
+        response = await getAssetFromKV(
+          { request, waitUntil: ctx.waitUntil.bind(ctx) },
+          {
+            ASSET_NAMESPACE: env.__STATIC_CONTENT,
+            ASSET_MANIFEST: assetManifest,
+            cacheControl: {
+              browserTTL: 60 * 60 * 24,
+              edgeTTL: 60 * 60 * 24 * 2,
+              bypassCache: env.ENVIRONMENT !== 'production',
+            },
+          }
+        )
+      } catch (e) {
+        if (e instanceof NotFoundError) {
+          try {
+            const notFoundRequest = new Request(new URL('/index.html', url.origin).toString(), request)
+            response = await getAssetFromKV(
+              { request: notFoundRequest, waitUntil: ctx.waitUntil.bind(ctx) },
+              {
+                ASSET_NAMESPACE: env.__STATIC_CONTENT,
+                ASSET_MANIFEST: assetManifest,
+              }
+            )
+          } catch {
+            response = new Response('Not found', { status: 404 })
+          }
+        } else {
+          response = new Response('Internal error', { status: 500 })
+        }
+      }
+      // @handle-static-assets-end
     }
 
-    for (const [k, v] of Object.entries(corsHeaders)) {
-      response.headers.set(k, v)
+    if (path.startsWith('/v1/')) {
+      for (const [k, v] of Object.entries(corsHeaders)) {
+        response.headers.set(k, v)
+      }
     }
 
     return response

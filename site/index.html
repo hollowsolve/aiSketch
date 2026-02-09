@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>aiSketch — Hand-drawn vector scenes from text</title>
+  <meta name="description" content="API that converts natural language into fully editable, semantically structured, hand-drawn-style vector scenes." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✏️</text></svg>" />
+</head>
+<body>
+  <!-- @site-nav -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo">
+        <span class="nav-logo-icon">✏️</span>
+        <span class="nav-logo-text">aiSketch</span>
+      </a>
+      <div class="nav-links">
+        <a href="#demo">Demo</a>
+        <a href="#modes">Modes</a>
+        <a href="#api">API</a>
+        <a href="#pricing">Pricing</a>
+        <a href="https://docs.aisketch.app" class="nav-btn-secondary">Docs</a>
+        <a href="https://aisketch.app/v1/health" class="nav-btn-primary">Get API Key</a>
+      </div>
+      <button class="nav-mobile-toggle" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+  <!-- @site-nav-end -->
+
+  <!-- @site-hero -->
+  <section class="hero">
+    <div class="hero-bg-grid"></div>
+    <div class="hero-content">
+      <div class="hero-badge">Now in Beta</div>
+      <h1 class="hero-title">
+        Hand-drawn vector scenes<br />
+        <span class="hero-gradient">from a single prompt.</span>
+      </h1>
+      <p class="hero-subtitle">
+        An API that converts natural language into fully editable, semantically structured,
+        hand-drawn-style vector scenes — rendered stroke by stroke in real time.
+      </p>
+      <div class="hero-cta">
+        <a href="#demo" class="btn-primary">Try the Demo</a>
+        <a href="#api" class="btn-secondary">View API →</a>
+      </div>
+      <div class="hero-canvas-wrapper">
+        <canvas id="hero-canvas" width="900" height="500"></canvas>
+        <div class="hero-canvas-prompt">
+          <span class="hero-prompt-label">prompt:</span>
+          <span class="hero-prompt-text" id="hero-prompt-text">"a cozy cabin in the woods with smoke rising from the chimney"</span>
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- @site-hero-end -->
+
+  <!-- @site-features -->
+  <section class="features">
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🎨</div>
+        <h3>Scene Graphs, Not Images</h3>
+        <p>Get hierarchical, named components with editable brush strokes. Not a flat PNG — a full document you can manipulate.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">✍️</div>
+        <h3>8 Brush Types</h3>
+        <p>Round, calligraphy, charcoal, watercolor, chalk, spray, pixel, and square. Each with jitter, scatter, and taper.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎬</div>
+        <h3>Stroke-by-Stroke Animation</h3>
+        <p>Watch your scene draw itself. Layer-ordered playback with configurable timing and natural hand tremor.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>~8KB Client Library</h3>
+        <p>Zero dependencies. Pure Canvas 2D. Drop it into any project — React, Vue, vanilla, whatever.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🌊</div>
+        <h3>SSE Streaming</h3>
+        <p>Stream scene generation in real time via Server-Sent Events. Show progress as the AI builds your scene.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏗️</div>
+        <h3>Two Modes</h3>
+        <p>Draw mode for expressive art. Design mode for spatial layouts and floor plans. Same format, different intelligence.</p>
+      </div>
+    </div>
+  </section>
+  <!-- @site-features-end -->
+
+  <!-- @site-demo -->
+  <section class="demo" id="demo">
+    <div class="section-inner">
+      <div class="section-label">Interactive Demo</div>
+      <h2 class="section-title">See it in action</h2>
+      <p class="section-subtitle">Type a prompt and watch aiSketch generate a hand-drawn scene in real time.</p>
+      <div class="demo-container">
+        <div class="demo-input-row">
+          <div class="demo-mode-toggle">
+            <button class="demo-mode-btn active" data-mode="draw">Draw</button>
+            <button class="demo-mode-btn" data-mode="design">Design</button>
+          </div>
+          <div class="demo-prompt-input">
+            <input type="text" id="demo-input" placeholder="Describe a scene..." value="a lighthouse on a rocky cliff at sunset" />
+            <button id="demo-generate" class="btn-primary">Generate</button>
+          </div>
+        </div>
+        <div class="demo-canvas-container">
+          <canvas id="demo-canvas" width="800" height="500"></canvas>
+          <div class="demo-progress-bar">
+            <div class="demo-progress-fill" id="demo-progress"></div>
+          </div>
+        </div>
+        <div class="demo-presets">
+          <span class="demo-presets-label">Try:</span>
+          <button class="demo-preset" data-prompt="a cozy reading nook with a cat sleeping on a cushion" data-mode="draw">reading nook</button>
+          <button class="demo-preset" data-prompt="a bicycle leaning against a brick wall with vines" data-mode="draw">bicycle & wall</button>
+          <button class="demo-preset" data-prompt="studio apartment layout with kitchen, bed area, and desk" data-mode="design">studio apartment</button>
+          <button class="demo-preset" data-prompt="a treehouse connected by rope bridges" data-mode="draw">treehouse</button>
+          <button class="demo-preset" data-prompt="open plan office with 6 desks and a meeting room" data-mode="design">office layout</button>
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- @site-demo-end -->
+
+  <!-- @site-modes -->
+  <section class="modes" id="modes">
+    <div class="section-inner">
+      <div class="section-label">Two Modes</div>
+      <h2 class="section-title">Draw vs Design</h2>
+      <p class="section-subtitle">Same API, same format — different creative intelligence.</p>
+      <div class="modes-comparison">
+        <div class="mode-card">
+          <div class="mode-header draw">
+            <span class="mode-icon">🎨</span>
+            <h3>Draw Mode</h3>
+          </div>
+          <canvas class="mode-canvas" id="mode-draw-canvas" width="380" height="280"></canvas>
+          <div class="mode-prompt">"a vintage bicycle with a basket of flowers"</div>
+          <ul class="mode-features">
+            <li>Expressive, artistic compositions</li>
+            <li>Full brush palette (8 types)</li>
+            <li>Mood and visual storytelling</li>
+            <li>Natural hand tremor and overshoot</li>
+            <li>Layered depth and shading</li>
+          </ul>
+        </div>
+        <div class="mode-vs">VS</div>
+        <div class="mode-card">
+          <div class="mode-header design">
+            <span class="mode-icon">📐</span>
+            <h3>Design Mode</h3>
+          </div>
+          <canvas class="mode-canvas" id="mode-design-canvas" width="380" height="280"></canvas>
+          <div class="mode-prompt">"one bedroom apartment with kitchen and balcony"</div>
+          <ul class="mode-features">
+            <li>Spatial logic and proportion</li>
+            <li>Restrained, technical brushes</li>
+            <li>Dimension labels and zones</li>
+            <li>Wall connections and constraints</li>
+            <li>Functional layout intelligence</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- @site-modes-end -->
+
+  <!-- @site-api -->
+  <section class="api" id="api">
+    <div class="section-inner">
+      <div class="section-label">API Reference</div>
+      <h2 class="section-title">Three lines to generate a scene</h2>
+      <p class="section-subtitle">Simple REST API. Generate, stream, and render.</p>
+      <div class="api-tabs">
+        <button class="api-tab active" data-tab="generate">Generate</button>
+        <button class="api-tab" data-tab="stream">Stream (SSE)</button>
+        <button class="api-tab" data-tab="render">Render</button>
+      </div>
+      <div class="api-code-panels">
+        <div class="api-panel active" data-panel="generate">
+          <div class="code-block">
+            <div class="code-header">
+              <span class="code-lang">bash</span>
+              <button class="code-copy" data-code="generate">Copy</button>
+            </div>
+            <pre><code><span class="kw">curl</span> -X POST https://aisketch.app/v1/sketch \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -H <span class="str">"X-API-Key: sk_your_key"</span> \
+  -d <span class="str">'{
+    "prompt": "a cozy cabin in the woods",
+    "mode": "draw",
+    "canvas": { "width": 800, "height": 600 }
+  }'</span></code></pre>
+          </div>
+          <div class="code-block">
+            <div class="code-header">
+              <span class="code-lang">javascript</span>
+              <button class="code-copy" data-code="generate-js">Copy</button>
+            </div>
+            <pre><code><span class="kw">const</span> response = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'https://aisketch.app/v1/sketch'</span>, {
+  method: <span class="str">'POST'</span>,
+  headers: {
+    <span class="str">'Content-Type'</span>: <span class="str">'application/json'</span>,
+    <span class="str">'X-API-Key'</span>: <span class="str">'sk_your_key'</span>,
+  },
+  body: JSON.<span class="fn">stringify</span>({
+    prompt: <span class="str">'a cozy cabin in the woods'</span>,
+    mode: <span class="str">'draw'</span>,
+    canvas: { width: <span class="num">800</span>, height: <span class="num">600</span> },
+  }),
+})
+
+<span class="kw">const</span> scene = <span class="kw">await</span> response.<span class="fn">json</span>()</code></pre>
+          </div>
+        </div>
+        <div class="api-panel" data-panel="stream">
+          <div class="code-block">
+            <div class="code-header">
+              <span class="code-lang">javascript</span>
+              <button class="code-copy" data-code="stream-js">Copy</button>
+            </div>
+            <pre><code><span class="kw">const</span> response = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'https://aisketch.app/v1/sketch'</span>, {
+  method: <span class="str">'POST'</span>,
+  headers: {
+    <span class="str">'Content-Type'</span>: <span class="str">'application/json'</span>,
+    <span class="str">'X-API-Key'</span>: <span class="str">'sk_your_key'</span>,
+  },
+  body: JSON.<span class="fn">stringify</span>({
+    prompt: <span class="str">'a lighthouse on a cliff'</span>,
+    mode: <span class="str">'draw'</span>,
+    stream: <span class="kw">true</span>,
+    canvas: { width: <span class="num">800</span>, height: <span class="num">600</span> },
+  }),
+})
+
+<span class="kw">const</span> reader = response.body.<span class="fn">getReader</span>()
+<span class="kw">const</span> decoder = <span class="kw">new</span> <span class="fn">TextDecoder</span>()
+
+<span class="kw">while</span> (<span class="kw">true</span>) {
+  <span class="kw">const</span> { done, value } = <span class="kw">await</span> reader.<span class="fn">read</span>()
+  <span class="kw">if</span> (done) <span class="kw">break</span>
+  <span class="cmt">// Process SSE chunks as they arrive</span>
+  console.<span class="fn">log</span>(decoder.<span class="fn">decode</span>(value))
+}</code></pre>
+          </div>
+        </div>
+        <div class="api-panel" data-panel="render">
+          <div class="code-block">
+            <div class="code-header">
+              <span class="code-lang">javascript</span>
+              <button class="code-copy" data-code="render-js">Copy</button>
+            </div>
+            <pre><code><span class="kw">import</span> { renderScene, animateScene } <span class="kw">from</span> <span class="str">'aisketch'</span>
+
+<span class="cmt">// Static render</span>
+<span class="kw">const</span> canvas = document.<span class="fn">getElementById</span>(<span class="str">'canvas'</span>)
+<span class="kw">const</span> ctx = canvas.<span class="fn">getContext</span>(<span class="str">'2d'</span>)
+<span class="fn">renderScene</span>(ctx, scene, { wobble: <span class="num">0.5</span>, fidelity: <span class="num">0.7</span>, seed: <span class="num">42</span> })
+
+<span class="cmt">// Animated playback — stroke by stroke</span>
+<span class="kw">const</span> handle = <span class="fn">animateScene</span>(ctx, scene, {
+  wobble: <span class="num">0.5</span>,
+  fidelity: <span class="num">0.7</span>,
+  seed: <span class="num">42</span>,
+  strokeDuration: <span class="num">400</span>,
+  layerPause: <span class="num">200</span>,
+  <span class="fn">onProgress</span>: (p) => console.<span class="fn">log</span>(<span class="str">`${(p * 100).toFixed(0)}%`</span>),
+  <span class="fn">onComplete</span>: () => console.<span class="fn">log</span>(<span class="str">'Done!'</span>),
+})
+
+<span class="cmt">// Control playback</span>
+handle.<span class="fn">pause</span>()
+handle.<span class="fn">resume</span>()
+handle.<span class="fn">cancel</span>()</code></pre>
+          </div>
+        </div>
+      </div>
+      <div class="api-response-preview">
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">response — .aisketch scene graph</span>
+          </div>
+          <pre><code>{
+  <span class="str">"name"</span>: <span class="str">"cozy cabin"</span>,
+  <span class="str">"version"</span>: <span class="str">"1.0"</span>,
+  <span class="str">"mode"</span>: <span class="str">"draw"</span>,
+  <span class="str">"canvas"</span>: { <span class="str">"width"</span>: <span class="num">800</span>, <span class="str">"height"</span>: <span class="num">600</span> },
+  <span class="str">"root"</span>: {
+    <span class="str">"name"</span>: <span class="str">"scene"</span>,
+    <span class="str">"type"</span>: <span class="str">"component"</span>,
+    <span class="str">"children"</span>: [
+      {
+        <span class="str">"name"</span>: <span class="str">"mountains"</span>,
+        <span class="str">"type"</span>: <span class="str">"component"</span>,
+        <span class="str">"children"</span>: [
+          { <span class="str">"name"</span>: <span class="str">"peak-left"</span>, <span class="str">"type"</span>: <span class="str">"stroke"</span>, <span class="cmt">/* ... */</span> },
+          { <span class="str">"name"</span>: <span class="str">"peak-right"</span>, <span class="str">"type"</span>: <span class="str">"stroke"</span>, <span class="cmt">/* ... */</span> }
+        ]
+      },
+      {
+        <span class="str">"name"</span>: <span class="str">"cabin"</span>,
+        <span class="str">"type"</span>: <span class="str">"component"</span>,
+        <span class="str">"children"</span>: [ <span class="cmt">/* walls, roof, chimney, smoke ... */</span> ]
+      }
+    ]
+  }
+}</code></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- @site-api-end -->
+
+  <!-- @site-pricing -->
+  <section class="pricing" id="pricing">
+    <div class="section-inner">
+      <div class="section-label">Pricing</div>
+      <h2 class="section-title">Simple, transparent pricing</h2>
+      <p class="section-subtitle">Pay for what you generate. No hidden fees.</p>
+      <div class="pricing-grid">
+        <div class="pricing-card">
+          <div class="pricing-name">Free</div>
+          <div class="pricing-price">$0<span>/mo</span></div>
+          <div class="pricing-desc">For exploring and prototyping</div>
+          <ul class="pricing-features">
+            <li>50 generations / month</li>
+            <li>Both Draw & Design modes</li>
+            <li>Full scene graph output</li>
+            <li>Client library access</li>
+            <li>Community support</li>
+          </ul>
+          <a href="#" class="btn-secondary pricing-btn">Get Started</a>
+        </div>
+        <div class="pricing-card featured">
+          <div class="pricing-badge">Most Popular</div>
+          <div class="pricing-name">Pro</div>
+          <div class="pricing-price">$29<span>/mo</span></div>
+          <div class="pricing-desc">For apps and integrations</div>
+          <ul class="pricing-features">
+            <li>2,000 generations / month</li>
+            <li>SSE streaming</li>
+            <li>Priority generation queue</li>
+            <li>Webhook callbacks</li>
+            <li>Email support</li>
+          </ul>
+          <a href="#" class="btn-primary pricing-btn">Start Free Trial</a>
+        </div>
+        <div class="pricing-card">
+          <div class="pricing-name">Enterprise</div>
+          <div class="pricing-price">Custom</div>
+          <div class="pricing-desc">For scale and custom needs</div>
+          <ul class="pricing-features">
+            <li>Unlimited generations</li>
+            <li>Dedicated infrastructure</li>
+            <li>Custom model tuning</li>
+            <li>SLA guarantee</li>
+            <li>Dedicated support</li>
+          </ul>
+          <a href="mailto:hello@volcanic.dev" class="btn-secondary pricing-btn">Contact Sales</a>
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- @site-pricing-end -->
+
+  <!-- @site-footer -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="nav-logo-icon">✏️</span>
+        <span class="nav-logo-text">aiSketch</span>
+        <p class="footer-tagline">Hand-drawn vector scenes from text.</p>
+      </div>
+      <div class="footer-links">
+        <div class="footer-col">
+          <h4>Product</h4>
+          <a href="#demo">Demo</a>
+          <a href="#api">API</a>
+          <a href="#pricing">Pricing</a>
+          <a href="https://docs.aisketch.app">Docs</a>
+        </div>
+        <div class="footer-col">
+          <h4>Company</h4>
+          <a href="https://volcanic.dev">Volcanic</a>
+          <a href="https://architectonic.dev">Architectonic</a>
+          <a href="mailto:hello@volcanic.dev">Contact</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© 2025 Volcanic. All rights reserved.</span>
+      </div>
+    </div>
+  </footer>
+  <!-- @site-footer-end -->
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

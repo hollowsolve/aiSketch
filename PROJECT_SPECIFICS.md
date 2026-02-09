@@ -72,9 +72,11 @@ File: src/index.ts
 ---
 
 @worker-entry
-Cloudflare Worker entry. Routes /v1/sketch and /v1/health.
+Cloudflare Worker entry. Routes /v1/sketch, /v1/health, and static site assets.
 File: worker/index.ts
-Env: ANTHROPIC_API_KEY, KV_SESSIONS, ENVIRONMENT
+Env: ANTHROPIC_API_KEY, KV_SESSIONS, ENVIRONMENT, __STATIC_CONTENT
+Sub-tags:
+  @handle-static-assets — serves site/dist via @cloudflare/kv-asset-handler, SPA fallback to index.html
 
 ---
 
@@ -89,3 +91,99 @@ Sub-tags:
   @handle-sketch-stream — SSE streaming via Anthropic stream API
   @handle-sketch-prompt — buildSystemPrompt(), DRAW_INSTRUCTIONS, DESIGN_INSTRUCTIONS
   @handle-sketch-utils — json(), extractJSON()
+
+---
+
+@site-vite-config
+Vite config for landing page site.
+File: site/vite.config.ts
+
+---
+
+@site-main
+Landing page entry point. Initializes hero animation, demo, mode canvases, API tabs, nav scroll.
+File: site/src/main.ts
+Sub-tags:
+  @site-hero-animation — animateScene on hero canvas, loops with IntersectionObserver
+  @site-mode-canvases — animates Draw & Design mode comparison canvases
+  @site-demo-interaction — demo section: prompt input, mode toggle, preset buttons, scene generation
+  @site-api-tabs — API code tab switching and copy button
+  @site-nav-scroll — nav background on scroll, mobile menu toggle
+  @site-canvas-utils — scaleCanvas() for DPR-aware canvas sizing
+
+---
+
+@site-scenes
+Hardcoded demo scenes for the landing page (hero, draw mode, design mode, demo).
+File: site/src/scenes.ts
+Sub-tags:
+  @site-scene-utils — brush/transform helper constructors
+  @site-hero-scene — HERO_SCENE: cozy cabin in woods
+  @site-draw-mode-scene — DRAW_MODE_SCENE: vintage bicycle with flowers
+  @site-design-mode-scene — DESIGN_MODE_SCENE: one bedroom apartment floor plan
+  @site-demo-scenes — DEMO_SCENES: lighthouse on cliff (keyed by prompt)
+
+---
+
+@site-css
+Landing page styles. Dark theme, Inter + JetBrains Mono fonts.
+File: site/src/style.css
+Sub-tags:
+  @site-css-reset — box-sizing, body defaults
+  @site-css-nav — fixed nav, scroll effect, mobile toggle
+  @site-css-hero — hero section, gradient text, canvas wrapper
+  @site-css-features — feature cards grid
+  @site-css-sections — shared section inner, label, title, subtitle
+  @site-css-demo — demo container, mode toggle, prompt input, presets
+  @site-css-modes — Draw vs Design comparison cards
+  @site-css-api — API tab switcher, code blocks, syntax highlighting
+  @site-css-pricing — pricing cards grid, featured card glow
+  @site-css-footer — footer brand, links, bottom bar
+
+---
+
+@site-nav
+Landing page navigation bar.
+File: site/index.html (HTML)
+
+---
+
+@site-hero
+Landing page hero section with live canvas.
+File: site/index.html (HTML)
+
+---
+
+@site-features
+Feature cards section.
+File: site/index.html (HTML)
+
+---
+
+@site-demo
+Interactive demo section.
+File: site/index.html (HTML)
+
+---
+
+@site-modes
+Draw vs Design comparison section.
+File: site/index.html (HTML)
+
+---
+
+@site-api
+API code snippets section.
+File: site/index.html (HTML)
+
+---
+
+@site-pricing
+Pricing section.
+File: site/index.html (HTML)
+
+---
+
+@site-footer
+Footer section.
+File: site/index.html (HTML)

@@ -6,13 +6,18 @@
   "scripts": {
     "build": "esbuild src/index.ts --bundle --format=esm --outfile=dist/aisketch.js --minify --sourcemap",
     "build:dev": "esbuild src/index.ts --bundle --format=esm --outfile=dist/aisketch.js --sourcemap",
-    "deploy": "npx wrangler deploy",
-    "dev": "npx wrangler dev"
+    "build:site": "cd site && npx vite build",
+    "deploy": "npm run build:site && npx wrangler deploy",
+    "dev": "npx wrangler dev",
+    "dev:site": "cd site && npx vite"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250124.0",
     "esbuild": "^0.25.0",
     "typescript": "^5.9.3",
     "wrangler": "^4.0.0"
+  },
+  "dependencies": {
+    "@cloudflare/kv-asset-handler": "^0.4.2"
   }
 }

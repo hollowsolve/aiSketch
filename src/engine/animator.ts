@@ -34,9 +34,18 @@ export function animateScene(
   let pauseUntil = 0
   let animFrame = 0
 
-  ctx.clearRect(0, 0, scene.canvas.width, scene.canvas.height)
+  const w = scene.canvas.width
+  const h = scene.canvas.height
 
-  const drawnStrokes: FlatStroke[] = []
+  ctx.clearRect(0, 0, w, h)
+
+  const bufferCanvas = new OffscreenCanvas(
+    ctx.canvas.width,
+    ctx.canvas.height
+  )
+  const bufferCtx = bufferCanvas.getContext('2d')! as unknown as CanvasRenderingContext2D
+  const dpr = ctx.canvas.width / w
+  if (dpr !== 1) bufferCtx.scale(dpr, dpr)
 
   function tick(now: number) {
     if (cancelled) return
@@ -65,11 +74,11 @@ export function animateScene(
     const elapsed = now - strokeStart
     const progress = Math.min(1, elapsed / opts.strokeDuration)
 
-    ctx.clearRect(0, 0, scene.canvas.width, scene.canvas.height)
-
-    for (const drawn of drawnStrokes) {
-      renderSingleStroke(ctx, drawn, opts)
-    }
+    ctx.clearRect(0, 0, w, h)
+    ctx.save()
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    ctx.drawImage(bufferCanvas, 0, 0)
+    ctx.restore()
 
     const current = strokes[currentStroke]
     renderPartialStroke(ctx, current, progress, opts)
@@ -78,7 +87,7 @@ export function animateScene(
     opts.onProgress?.(totalProgress)
 
     if (progress >= 1) {
-      drawnStrokes.push(current)
+      renderSingleStroke(bufferCtx, current, opts)
       currentStroke++
       strokeStart = 0
 
