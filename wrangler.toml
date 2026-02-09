@@ -1,0 +1,19 @@
+name = "aisketch-api"
+main = "worker/index.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+ENVIRONMENT = "production"
+
+[[kv_namespaces]]
+binding = "KV_SESSIONS"
+id = "8cab5e74de07409da062d1dfd7d2bb37"
+
+[[routes]]
+pattern = "aisketch.app/*"
+zone_name = "aisketch.app"
+
+[[routes]]
+pattern = "www.aisketch.app/*"
+zone_name = "aisketch.app"
