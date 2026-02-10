@@ -52,6 +52,7 @@ async function handleSSEResponse(response: Response) {
   let buffer = ''
   let pendingEventType = ''
   let finalScene: Scene | null = null
+  let background: string | undefined
   const ctx = getCtx()
   const opts = { ...DEFAULT_RENDER_OPTIONS }
 
@@ -80,13 +81,17 @@ async function handleSSEResponse(response: Response) {
       try {
         const evt = JSON.parse(raw) as Record<string, unknown>
 
+        if (eventType === 'meta') {
+          background = evt.background as string | undefined
+        }
+
         if (eventType === 'node') {
           const node = evt as unknown as SceneNode
           const current = store.get().scene
           const updated = structuredClone(current)
           updated.root.children.push(structuredClone(node))
           store.set({ scene: updated })
-          renderIncrementalNode(ctx, node, opts)
+          renderIncrementalNode(ctx, node, opts, background)
         }
 
         if (eventType === 'scene') {
@@ -112,13 +117,13 @@ async function handleSSEResponse(response: Response) {
   }
 }
 
-function renderIncrementalNode(ctx: CanvasRenderingContext2D, node: SceneNode, opts: { wobble: number; fidelity: number; seed: number }) {
+function renderIncrementalNode(ctx: CanvasRenderingContext2D, node: SceneNode, opts: { wobble: number; fidelity: number; seed: number }, bg?: string) {
   if (node.type === 'stroke') {
     const flat = { node: node as StrokeNode, transforms: [] as Component['transform'][], depth: 0 }
     renderSingleStroke(ctx, flat as Parameters<typeof renderSingleStroke>[1], opts)
   } else if (node.type === 'fill') {
     const flat = { node: node as FillNode, transforms: [] as Component['transform'][], depth: 0 }
-    renderSingleFill(ctx, flat as Parameters<typeof renderSingleFill>[1], opts)
+    renderSingleFill(ctx, flat as Parameters<typeof renderSingleFill>[1], opts, bg)
   } else if (node.type === 'component') {
     const walk = (n: SceneNode) => {
       if (n.type === 'stroke') {
@@ -126,7 +131,7 @@ function renderIncrementalNode(ctx: CanvasRenderingContext2D, node: SceneNode, o
         renderSingleStroke(ctx, flat as Parameters<typeof renderSingleStroke>[1], opts)
       } else if (n.type === 'fill') {
         const flat = { node: n, transforms: [] as Component['transform'][], depth: 0 }
-        renderSingleFill(ctx, flat as Parameters<typeof renderSingleFill>[1], opts)
+        renderSingleFill(ctx, flat as Parameters<typeof renderSingleFill>[1], opts, bg)
       } else if (n.type === 'component') {
         for (const child of n.children) walk(child)
       }

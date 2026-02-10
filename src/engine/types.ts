@@ -38,6 +38,7 @@ export interface FillNode {
   color: string
   opacity: number
   points: [number, number][]
+  occlude?: boolean
 }
 
 export interface Transform {

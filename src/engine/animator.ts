@@ -94,7 +94,7 @@ export function animateScene(
     ctx.restore()
 
     if (isFill) {
-      renderPartialFill(ctx, current as FlatElement & { node: FillNode }, progress, opts)
+      renderPartialFill(ctx, current as FlatElement & { node: FillNode }, progress, opts, scene.background)
     } else {
       renderPartialStroke(ctx, current as FlatElement & { node: StrokeNode }, progress, opts)
     }
@@ -104,7 +104,7 @@ export function animateScene(
 
     if (progress >= 1) {
       if (isFill) {
-        renderSingleFill(bufferCtx, current as FlatElement & { node: FillNode }, opts)
+        renderSingleFill(bufferCtx, current as FlatElement & { node: FillNode }, opts, scene.background)
       } else {
         renderSingleStroke(bufferCtx, current as FlatElement & { node: StrokeNode }, opts)
       }
@@ -168,10 +168,11 @@ function renderPartialFill(
   ctx: CanvasRenderingContext2D,
   flat: FlatElement & { node: FillNode },
   progress: number,
-  opts: RenderOptions
+  opts: RenderOptions,
+  background?: string
 ) {
   const fadedNode = { ...flat.node, opacity: flat.node.opacity * progress }
-  renderSingleFill(ctx, { ...flat, node: fadedNode }, opts)
+  renderSingleFill(ctx, { ...flat, node: fadedNode }, opts, background)
 }
 // @animator-partial-end
 // @animator-end

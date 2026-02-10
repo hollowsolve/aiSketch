@@ -394,7 +394,7 @@ async function handleSSEResponse(response: Response): Promise<Scene | null> {
           const node = evt as unknown as SceneNode
           liveScene.root.children.push(node)
           nodeCount++
-          renderIncrementalNode(node, opts)
+          renderIncrementalNode(node, opts, liveScene.background)
           const expectedNodes = mode === 'sketch' ? 220 : 160
           const pct = Math.min(nodeCount / expectedNodes, 0.95)
           if (progress) progress.style.width = `${(pct * 100).toFixed(0)}%`
@@ -420,7 +420,7 @@ async function handleSSEResponse(response: Response): Promise<Scene | null> {
   return scene || (nodeCount > 0 ? liveScene : null)
 }
 
-function renderIncrementalNode(node: SceneNode, opts: { wobble: number; fidelity: number; seed: number }) {
+function renderIncrementalNode(node: SceneNode, opts: { wobble: number; fidelity: number; seed: number }, bg?: string) {
   if (!ctx) return
 
   if (node.type === 'stroke') {
@@ -428,7 +428,7 @@ function renderIncrementalNode(node: SceneNode, opts: { wobble: number; fidelity
     renderSingleStroke(ctx, flat as Parameters<typeof renderSingleStroke>[1], opts)
   } else if (node.type === 'fill') {
     const flat = { node: node as FillNode, transforms: [] as Component['transform'][], depth: 0 }
-    renderSingleFill(ctx, flat as Parameters<typeof renderSingleFill>[1], opts)
+    renderSingleFill(ctx, flat as Parameters<typeof renderSingleFill>[1], opts, bg)
   } else if (node.type === 'component') {
     const walkAndRender = (n: SceneNode) => {
       if (n.type === 'stroke') {
@@ -436,7 +436,7 @@ function renderIncrementalNode(node: SceneNode, opts: { wobble: number; fidelity
         renderSingleStroke(ctx!, flat as Parameters<typeof renderSingleStroke>[1], opts)
       } else if (n.type === 'fill') {
         const flat = { node: n, transforms: [] as Component['transform'][], depth: 0 }
-        renderSingleFill(ctx!, flat as Parameters<typeof renderSingleFill>[1], opts)
+        renderSingleFill(ctx!, flat as Parameters<typeof renderSingleFill>[1], opts, bg)
       } else if (n.type === 'component') {
         for (const child of n.children) walkAndRender(child)
       }

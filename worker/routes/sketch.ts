@@ -120,7 +120,7 @@ async function batchResponse(
   mode: string,
   canvas: { width: number; height: number }
 ): Promise<Response> {
-  const maxTokens = mode === 'design' ? 32768 : 64000
+  const maxTokens = 32000
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -129,7 +129,7 @@ async function batchResponse(
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-opus-4-6',
       max_tokens: maxTokens,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
@@ -169,7 +169,7 @@ async function streamResponse(
   mode: string,
   canvas: { width: number; height: number }
 ): Promise<Response> {
-  const maxTokens = mode === 'design' ? 32768 : 64000
+  const maxTokens = 32000
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -178,7 +178,7 @@ async function streamResponse(
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-opus-4-6',
       max_tokens: maxTokens,
       stream: true,
       system: systemPrompt,
@@ -440,8 +440,11 @@ The "plan" array is CRITICAL. Before drawing ANYTHING, list EVERY element you wi
 
 ## Fill node — colored closed shape:
 {"name":"sky","type":"fill","layer":0,"color":"#87CEEB","opacity":0.6,"points":[[0,0],[${canvas.width},0],[${canvas.width},${Math.round(canvas.height * 0.5)}],[0,${Math.round(canvas.height * 0.55)}]]}
+{"name":"cat-body","type":"fill","layer":3,"color":"#d4a574","opacity":0.85,"points":[[280,200],[350,180],[420,200],[440,280],[400,340],[320,340],[280,280]]}
 
 Points are [x,y] pairs. 4-20 points. More points = more organic shape. Engine auto-closes and splines into hand-drawn curves.
+
+**OCCLUSION**: Fills at layer > 0 automatically ERASE whatever is behind them before drawing. This means foreground fills cleanly cover background strokes — just like real painting where opaque objects hide what's behind. Use this! Place a fill for every solid object (cat body, building wall, tree canopy) so background lines don't show through. Set "occlude": false on fills that should be transparent overlays (like sky glow, shadows, atmospheric haze).
 
 ## Stroke node — brush path:
 {"name":"trunk","type":"stroke","layer":2,"style":"outline","color":"#3d2b1f","points":[[200,350],[198,280],[195,220]],"weight":1.2}
@@ -530,14 +533,16 @@ label — text-sized precise strokes
 - Highlights: lighter, warmer versions (NOT white)
 - ALWAYS set "color" on every fill and stroke
 
-## Composition
-- USE THE FULL CANVAS. Background fills extend to edges.
+## Composition and spatial layout
+- USE THE FULL CANVAS (0 to ${canvas.width}, 0 to ${canvas.height}). Spread elements across the ENTIRE area. Sky fills span the full width. Ground fills go edge to edge. Objects should NOT all cluster in the center.
+- SCALE SUBJECTS TO THE CANVAS. A main subject should be 40-60% of the canvas dimensions. A cat on an 800x500 canvas is roughly 300-400px wide. A building fills most of the canvas height.
 - 30-60 fills + 80-150 strokes for a rich, detailed scene. MORE IS BETTER — don't hold back.
 - Every object needs MULTIPLE strokes: outlines, shading, detail, texture. A tree isn't 2 strokes — it's 10-20.
 - Create a clear focal point through contrast, detail density, and line weight
 - Use diagonal lines and overlapping forms to create movement
 - Leave some areas loose/empty — negative space is part of the composition
 - You have plenty of token budget. USE IT ALL. Build up layers of marks until the scene feels complete.
+- EVERY solid foreground/midground object needs a fill (with occlusion) to cleanly cover background lines behind it.
 
 ## Rules
 1. ALWAYS write "plan" before "root". Every plan item MUST have a corresponding node.
@@ -674,8 +679,9 @@ Use a SINGLE dark color with variations. This is a SKETCH, not a painting.
 - VISIBLE PROCESS — you can see the artist's thinking (construction, searching lines)
 - FORM, NOT OUTLINE — the volume of objects communicated through cross-contour and hatching direction
 
-## Composition
-- USE THE FULL CANVAS for the composition, but NOT every area needs marks
+## Composition and spatial layout
+- USE THE FULL CANVAS (0 to ${canvas.width}, 0 to ${canvas.height}). Spread the composition across the ENTIRE area. Don't cram everything into the center.
+- SCALE SUBJECTS TO THE CANVAS. A main subject should occupy 40-60% of the canvas. On an 800x500 canvas, a portrait head is 300px tall, a building is 400px tall, a cat is 250-350px.
 - 150-250 strokes total for a rich, detailed, professional sketch. MORE IS BETTER.
 - You have a huge token budget — USE IT ALL. Build up layers upon layers of marks.
 - 25-35% of the canvas should be EMPTY (lit areas, sky, negative space)
