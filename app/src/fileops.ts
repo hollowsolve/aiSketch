@@ -3,6 +3,8 @@ import { store, createEmptyScene } from './state'
 import { renderScene } from '@engine/renderer'
 import { DEFAULT_RENDER_OPTIONS } from '@engine/types'
 import type { Scene } from '@engine/types'
+import { exportDiagramPNG } from './diagram/generate'
+import { diagramUndo, diagramRedo, getSelectedNodeId, selectNode, applyAndRelayout } from './diagram/editing'
 
 // @app-fileops-new
 export function newFile() {
@@ -87,7 +89,7 @@ export function initFileMenu() {
     { label: 'Open...', action: openFile, shortcut: '⌘O' },
     { label: 'Save', action: saveFile, shortcut: '⌘S' },
     { label: '—', action: () => {}, shortcut: '' },
-    { label: 'Export PNG', action: exportPNG, shortcut: '⌘⇧E' },
+    { label: 'Export PNG', action: () => { if (store.get().mode === 'diagram') exportDiagramPNG(); else exportPNG() }, shortcut: '⌘⇧E' },
   ]
 
   menu.innerHTML = ''
@@ -139,10 +141,12 @@ export function initKeyboard() {
 
     if (meta && e.key === 'z' && !e.shiftKey) {
       e.preventDefault()
-      store.undo()
+      if (store.get().mode === 'diagram') diagramUndo()
+      else store.undo()
     } else if (meta && e.key === 'z' && e.shiftKey) {
       e.preventDefault()
-      store.redo()
+      if (store.get().mode === 'diagram') diagramRedo()
+      else store.redo()
     } else if (meta && e.key === 's') {
       e.preventDefault()
       saveFile()
@@ -154,7 +158,8 @@ export function initKeyboard() {
       newFile()
     } else if (meta && e.shiftKey && e.key === 'e') {
       e.preventDefault()
-      exportPNG()
+      if (store.get().mode === 'diagram') exportDiagramPNG()
+      else exportPNG()
     } else if (e.key === 'v' && !meta) {
       store.setTool('select')
     } else if (e.key === 'b' && !meta) {
@@ -168,9 +173,19 @@ export function initKeyboard() {
     } else if (e.key === 'r' && !meta) {
       store.setTool('rect')
     } else if (e.key === 'Delete' || e.key === 'Backspace') {
-      deleteSelected()
+      if (store.get().mode === 'diagram') deleteDiagramSelected()
+      else deleteSelected()
+    } else if (e.key === 'Escape' && store.get().mode === 'diagram') {
+      selectNode(null)
     }
   })
+}
+
+function deleteDiagramSelected() {
+  const nodeId = getSelectedNodeId()
+  if (!nodeId) return
+  applyAndRelayout([{ op: 'removeNode', id: nodeId }])
+  selectNode(null)
 }
 
 function deleteSelected() {

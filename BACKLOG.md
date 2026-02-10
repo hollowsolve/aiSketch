@@ -79,8 +79,8 @@ Build as web app first (app/ directory, Vite + vanilla TS), wrap native later (T
 
 ### Diagram Mode (AI-first engineering diagrams) — specced Session 006
 Build as new `'diagram'` mode, separate from sketch/design. AI-first architectural diagram editor.
-- [ ] Phase 1: Generate + View + Export — new mode, semantic graph AI prompt, dagre layout engine, diagram renderer (typed shapes, routed links, labels, groups — separate pipeline from sketch engine), canvas viewport, prompt bar, PNG export
-- [ ] Phase 2: Edit + Refine — select/drag nodes, inspector panel, conversational refinement via delta operations (addNode/removeNode/addLink/etc., not full replacement), undo/redo command stack, type-changing in inspector
+- [x] Phase 1: Generate + View + Export — new mode, semantic graph AI prompt, dagre layout engine, diagram renderer (typed shapes, routed links, labels, groups — separate pipeline from sketch engine), canvas viewport, prompt bar, PNG export — Session 007
+- [x] Phase 2: Edit + Refine — select/drag nodes, inspector panel, conversational refinement via delta operations (addNode/removeNode/addLink/etc., not full replacement), undo/redo command stack, type-changing in inspector — Session 007
 - [ ] Phase 3: Depth + Flow — composite nodes with lazy sub-diagram generation, drill-in/breadcrumb navigation, cross-boundary port rendering, AI-generated flows from prompts, flow display (numbered badges, color overlay, animated pulse), click-to-trace manual flow creation
 - [ ] Phase 4: Power — tag-based Views (semantic filtering), Kit customization, SVG export, structured JSON export
 Core abstractions: Node (typed: service/database/queue/etc.), Link (typed: sync/async/data/event), Group (typed: boundary/VPC/team), Depth (lazy composite nodes + ports), Flow (ordered path traversal), Note (metadata on any element), View (tag-based semantic filter), Kit (type system + visual rules). Data model: semantic layer (AI generates, no positions) + visual layer (layout engine computes positions/routes). Delta operations for conversational refinement preserving manual edits.

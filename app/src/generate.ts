@@ -184,9 +184,11 @@ export function initGenerate() {
   const input = document.getElementById('prompt-input') as HTMLInputElement
   const btn = document.getElementById('prompt-submit') as HTMLButtonElement
 
-  btn.addEventListener('click', () => generateFromPrompt(input.value))
+  btn.addEventListener('click', () => {
+    if (store.get().mode !== 'diagram') generateFromPrompt(input.value)
+  })
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && store.get().mode !== 'diagram') {
       e.preventDefault()
       generateFromPrompt(input.value)
     }

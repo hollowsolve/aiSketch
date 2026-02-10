@@ -4,6 +4,9 @@ import { renderScene } from '@engine/renderer'
 import { DEFAULT_RENDER_OPTIONS } from '@engine/types'
 import { resolveStyle } from '@engine/styles'
 import { renderDesignOverlays } from './design'
+import { renderDiagram } from './diagram/renderer'
+import { getSelectedNodeId, selectNode, hitTestDiagramNode, setNodePosition, pushDiagramUndo, getPositionOverrides } from './diagram/editing'
+import { computeGroupBoundsFromLayout } from './diagram/layout'
 
 // @app-viewport-init
 let canvas: HTMLCanvasElement
@@ -66,7 +69,9 @@ function render() {
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
-  if (mode === 'design') {
+  if (mode === 'diagram') {
+    drawDiagramBackground()
+  } else if (mode === 'design') {
     drawDesignBackground(viewport, design)
   } else {
     drawSketchBackground(viewport)
@@ -76,21 +81,28 @@ function render() {
   ctx.translate(viewport.panX, viewport.panY)
   ctx.scale(viewport.zoom, viewport.zoom)
 
-  renderScene(ctx, scene, DEFAULT_RENDER_OPTIONS)
+  if (mode === 'diagram') {
+    const { diagram } = store.get()
+    if (diagram.layout) {
+      renderDiagram(ctx, diagram.layout, getSelectedNodeId())
+    }
+  } else {
+    renderScene(ctx, scene, DEFAULT_RENDER_OPTIONS)
 
-  if (mode === 'design') {
-    renderDesignOverlays(ctx, scene, design)
-  }
+    if (mode === 'design') {
+      renderDesignOverlays(ctx, scene, design)
+    }
 
-  if (selection.selectionBox) {
-    const b = selection.selectionBox
-    ctx.strokeStyle = '#4a90d9'
-    ctx.lineWidth = 1 / viewport.zoom
-    ctx.setLineDash([4 / viewport.zoom, 4 / viewport.zoom])
-    ctx.strokeRect(b.x, b.y, b.w, b.h)
-    ctx.setLineDash([])
-    ctx.fillStyle = 'rgba(74, 144, 217, 0.1)'
-    ctx.fillRect(b.x, b.y, b.w, b.h)
+    if (selection.selectionBox) {
+      const b = selection.selectionBox
+      ctx.strokeStyle = '#4a90d9'
+      ctx.lineWidth = 1 / viewport.zoom
+      ctx.setLineDash([4 / viewport.zoom, 4 / viewport.zoom])
+      ctx.strokeRect(b.x, b.y, b.w, b.h)
+      ctx.setLineDash([])
+      ctx.fillStyle = 'rgba(74, 144, 217, 0.1)'
+      ctx.fillRect(b.x, b.y, b.w, b.h)
+    }
   }
 
   ctx.restore()
@@ -169,6 +181,12 @@ function drawDesignBackground(
     }
   }
 }
+function drawDiagramBackground() {
+  const w = canvas.width / dpr
+  const h = canvas.height / dpr
+  ctx.fillStyle = '#f8f9fa'
+  ctx.fillRect(0, 0, w, h)
+}
 // @app-viewport-render-end
 
 // @app-viewport-input
@@ -203,6 +221,11 @@ function onPointerDown(e: PointerEvent) {
     return
   }
 
+  if (store.get().mode === 'diagram') {
+    startDiagramInteraction(e)
+    return
+  }
+
   if (tool === 'draw' || tool === 'eraser') {
     startDrawStroke(e)
   } else if (tool === 'select') {
@@ -222,7 +245,9 @@ function onPointerMove(e: PointerEvent) {
     return
   }
 
-  if (activeStroke) {
+  if (diagramDrag) {
+    continueDiagramDrag(e)
+  } else if (activeStroke) {
     continueDrawStroke(e)
   } else if (selectionDrag) {
     continueSelection(e)
@@ -240,7 +265,9 @@ function onPointerUp(e: PointerEvent) {
     return
   }
 
-  if (activeStroke) {
+  if (diagramDrag) {
+    finishDiagramDrag()
+  } else if (activeStroke) {
     finishDrawStroke()
   } else if (selectionDrag) {
     finishSelection()
@@ -611,6 +638,66 @@ function updateZoomDisplay() {
   if (el) el.textContent = Math.round(store.get().viewport.zoom * 100) + '%'
 }
 // @app-viewport-zoom-controls-end
+
+// @app-viewport-diagram-interaction
+interface DiagramDrag {
+  nodeId: string
+  startX: number
+  startY: number
+  origX: number
+  origY: number
+}
+
+let diagramDrag: DiagramDrag | null = null
+
+function startDiagramInteraction(e: PointerEvent) {
+  canvas.setPointerCapture(e.pointerId)
+  const pt = screenToScene(e.clientX, e.clientY)
+  const hitId = hitTestDiagramNode(pt.x, pt.y)
+
+  if (hitId) {
+    selectNode(hitId)
+    const { diagram } = store.get()
+    const ln = diagram.layout?.nodes.find(n => n.id === hitId)
+    if (ln) {
+      pushDiagramUndo()
+      diagramDrag = { nodeId: hitId, startX: pt.x, startY: pt.y, origX: ln.x, origY: ln.y }
+    }
+  } else {
+    selectNode(null)
+  }
+}
+
+function continueDiagramDrag(e: PointerEvent) {
+  if (!diagramDrag) return
+  const pt = screenToScene(e.clientX, e.clientY)
+  const dx = pt.x - diagramDrag.startX
+  const dy = pt.y - diagramDrag.startY
+  const newX = diagramDrag.origX + dx
+  const newY = diagramDrag.origY + dy
+
+  const { diagram } = store.get()
+  if (!diagram.layout) return
+
+  const ln = diagram.layout.nodes.find(n => n.id === diagramDrag!.nodeId)
+  if (ln) {
+    ln.x = newX
+    ln.y = newY
+  }
+
+  setNodePosition(diagramDrag.nodeId, newX, newY)
+
+  if (diagram.graph && diagram.layout) {
+    diagram.layout.groups = computeGroupBoundsFromLayout(diagram.graph, diagram.layout.nodes)
+  }
+
+  requestRender()
+}
+
+function finishDiagramDrag() {
+  diagramDrag = null
+}
+// @app-viewport-diagram-interaction-end
 
 export function getCanvas(): HTMLCanvasElement { return canvas }
 export function getCtx(): CanvasRenderingContext2D { return ctx }

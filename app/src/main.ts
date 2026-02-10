@@ -5,6 +5,9 @@ import { initViewport, zoomIn, zoomOut, zoomFit } from './viewport'
 import { initGenerate } from './generate'
 import { initPanels } from './panels'
 import { initFileMenu, initKeyboard } from './fileops'
+import { initDiagramMode } from './diagram-mode'
+import { diagramUndo, diagramRedo } from './diagram/editing'
+import { initInspector } from './diagram/inspector'
 import type { AppMode } from './types'
 
 // @app-main-init
@@ -17,6 +20,8 @@ function init() {
   initModeSwitcher()
   initZoomControls()
   initUndoRedoButtons()
+  initDiagramMode()
+  initInspector()
 }
 
 function initModeSwitcher() {
@@ -46,6 +51,18 @@ function updateModeUI(mode: AppMode) {
   const colorSection = document.getElementById('color-section')!
   brushSection.style.display = mode === 'sketch' ? '' : 'none'
   colorSection.style.display = mode === 'sketch' ? '' : 'none'
+
+  const leftPanel = document.getElementById('left-panel')!
+  const rightPanel = document.getElementById('right-panel')!
+  leftPanel.style.display = mode === 'diagram' ? 'none' : ''
+  rightPanel.style.display = mode === 'diagram' ? 'none' : ''
+
+  const promptInput = document.getElementById('prompt-input') as HTMLInputElement
+  if (promptInput) {
+    promptInput.placeholder = mode === 'diagram'
+      ? 'Describe your system architecture...'
+      : 'Describe what to draw...'
+  }
 }
 
 function initZoomControls() {
@@ -55,8 +72,14 @@ function initZoomControls() {
 }
 
 function initUndoRedoButtons() {
-  document.getElementById('btn-undo')!.addEventListener('click', () => store.undo())
-  document.getElementById('btn-redo')!.addEventListener('click', () => store.redo())
+  document.getElementById('btn-undo')!.addEventListener('click', () => {
+    if (store.get().mode === 'diagram') diagramUndo()
+    else store.undo()
+  })
+  document.getElementById('btn-redo')!.addEventListener('click', () => {
+    if (store.get().mode === 'diagram') diagramRedo()
+    else store.redo()
+  })
 }
 // @app-main-init-end
 

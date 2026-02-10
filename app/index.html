@@ -16,6 +16,7 @@
         <div class="mode-switcher">
           <button class="mode-btn active" data-mode="sketch">Sketch</button>
           <button class="mode-btn" data-mode="design">Design</button>
+          <button class="mode-btn" data-mode="diagram">Diagram</button>
         </div>
       </div>
       <div class="toolbar-center" id="tool-options"></div>
@@ -74,6 +75,15 @@
         <div class="panel-section" id="properties-section">
           <div class="panel-section-title">Properties</div>
           <div id="properties-panel"></div>
+        </div>
+      </aside>
+
+      <aside id="diagram-inspector" class="panel panel-right diagram-inspector">
+        <div class="panel-section" id="inspector-section">
+          <div class="panel-section-title">Inspector</div>
+          <div id="inspector-content" class="inspector-content">
+            <div class="inspector-empty">Select a node to inspect</div>
+          </div>
         </div>
       </aside>
     </div>

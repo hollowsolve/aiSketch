@@ -23,11 +23,12 @@ Sub-systems:
 ### Generation API (@handle-sketch)
 Cloudflare Worker at `POST /v1/sketch`. Takes a prompt + mode, calls Claude with a scene-graph system prompt, returns structured JSON. Supports batch (full JSON) and streaming (SSE) responses.
 
-### Two Modes
+### Three Modes
 - **Draw** — Artist mode: composition, mood, visual storytelling. Full brush palette.
 - **Design** — Designer mode: spatial logic, proportion, function. Restrained brushes, dimension labels.
+- **Diagram** — AI-first engineering diagram editor. AI generates semantic graphs (nodes, links, groups — no positions). dagre layout engine computes positions. Canvas 2D renderer draws typed shapes, routed links, group boundaries.
 
-Both produce the same .aisketch scene graph format.
+Draw and Design produce .aisketch scene graph format. Diagram produces DiagramGraph (semantic) + LayoutResult (positioned).
 
 ---
 
@@ -35,6 +36,7 @@ Both produce the same .aisketch scene graph format.
 
 ```
 POST /v1/sketch    — Generate a scene graph from a prompt
+POST /v1/diagram   — Generate a semantic diagram graph from a prompt
 GET  /v1/health    — Health check
 ```
 
@@ -76,7 +78,8 @@ aiSketch/
 │   ├── index.ts            — Worker entry, routing
 │   └── routes/
 │       ├── auth.ts          — Auth: passwordless email, sessions, API keys, credits
-│       └── sketch.ts        — /v1/sketch handler + LLM prompt
+│       ├── sketch.ts        — /v1/sketch handler + LLM prompt
+│       └── diagram.ts       — /v1/diagram handler + semantic graph prompt
 ├── app/
 │   ├── src/
 │   │   ├── main.ts          — App entry point
@@ -87,6 +90,15 @@ aiSketch/
 │   │   ├── generate.ts      — AI generation flow
 │   │   ├── panels.ts        — Side panels (tools, brush, color, layers)
 │   │   ├── fileops.ts       — File ops + keyboard shortcuts
+│   │   ├── diagram-mode.ts  — Diagram mode init + prompt wiring
+│   │   ├── diagram/
+│   │   │   ├── types.ts      — Diagram semantic types + layout types + delta ops
+│   │   │   ├── layout.ts     — dagre layout engine wrapper
+│   │   │   ├── renderer.ts   — Canvas 2D diagram renderer + selection highlight
+│   │   │   ├── editing.ts    — Delta ops, undo/redo, position overrides, selection, hit testing
+│   │   │   ├── inspector.ts  — Inspector panel for selected node editing
+│   │   │   ├── generate.ts   — Diagram generation + refinement flow + export
+│   │   │   └── index.ts      — Barrel export
 │   │   └── style.css        — App styles
 │   ├── index.html           — App HTML shell
 │   └── vite.config.ts       — Vite config

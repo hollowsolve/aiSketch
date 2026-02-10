@@ -306,6 +306,7 @@ Sub-tags:
   @app-viewport-line-tool — line tool: snap-to-grid, commit as 2-point stroke
   @app-viewport-rect-tool — rectangle tool: 4 stroke sides as component
   @app-viewport-snap — snapToGrid() for design mode
+  @app-viewport-diagram-interaction — startDiagramInteraction() click-to-select + drag-to-move, continueDiagramDrag(), finishDiagramDrag(): diagram node selection and dragging with position overrides
   @app-viewport-zoom-controls — zoomIn, zoomOut, zoomFit, updateZoomDisplay
 
 ---
@@ -384,3 +385,103 @@ Sub-tags:
   @app-css-prompt — floating prompt bar: input + submit, error toast
   @app-css-zoom — zoom controls: +/−/fit buttons, zoom level label
   @app-css-menu — dropdown menu: items, shortcuts, separators
+  @app-css-diagram-inspector — diagram inspector panel: fields, labels, inputs, selects, delete button
+
+---
+
+@diagram-types
+Diagram mode type definitions: DiagramNode (typed: service/database/queue/cache/gateway/client/storage/function/external/custom), DiagramLink (typed: sync/async/data/event/dependency), DiagramGroup (typed: boundary/vpc/team/zone/region), DiagramGraph (name + nodes + links + groups). Layout result types: LayoutNode, LayoutLink, LayoutGroup, LayoutResult. Delta operations for conversational refinement. Position overrides for manual node dragging.
+File: app/src/diagram/types.ts
+Sub-tags:
+  @diagram-types-node — DiagramNodeType union, DiagramNode interface
+  @diagram-types-link — DiagramLinkType union, DiagramLink interface
+  @diagram-types-group — DiagramGroupType union, DiagramGroup interface
+  @diagram-types-graph — DiagramGraph interface (semantic model, no positions)
+  @diagram-types-delta — DeltaOp union type: addNode/removeNode/updateNode/addLink/removeLink/updateLink/addGroup/removeGroup/updateGroup
+  @diagram-types-layout — LayoutNode, LayoutLink, LayoutGroup, LayoutResult (positioned output)
+  @diagram-types-position-overrides — PositionOverrides type (Map of node id → {x,y})
+
+---
+
+@diagram-layout
+Dagre layout engine wrapper. Takes semantic DiagramGraph, computes positioned LayoutResult.
+File: app/src/diagram/layout.ts
+Sub-tags:
+  @diagram-layout-sizes — NODE_SIZES per DiagramNodeType (width/height)
+  @diagram-layout-compute — computeLayout(): creates dagre graph, sets nodes/edges/parents, runs layout, extracts positioned nodes/links/groups
+  @diagram-layout-group-bounds — computeGroupBounds(): calculates group bounding boxes from member node positions with padding
+
+---
+
+@diagram-renderer
+Canvas 2D diagram renderer. Draws typed node shapes, routed links with arrowheads and labels, dashed group boundaries. Selection highlight with corner handles. Separate pipeline from sketch engine.
+File: app/src/diagram/renderer.ts
+Sub-tags:
+  @diagram-renderer-colors — NODE_COLORS, LINK_COLORS, GROUP_COLORS, NODE_ICONS per type
+  @diagram-renderer-main — renderDiagram(): groups → links → nodes → selection render order. Accepts optional selectedId.
+  @diagram-renderer-selection — renderSelectionHighlight(): dashed blue rect with corner handles around selected node
+  @diagram-renderer-node — renderNode(), renderRoundedRect(), renderDatabaseShape() (cylinder), renderQueueShape() (pill), renderFunctionShape() (hexagon), renderGatewayShape() (double-border)
+  @diagram-renderer-link — renderLink() (polyline with dash for async/event, arrowhead, label), renderArrowhead()
+  @diagram-renderer-group — renderGroup() (dashed rounded rect with label)
+
+---
+
+@diagram-generate
+Diagram generation flow: prompt → /v1/diagram API → SSE → parse graph → dagre layout → store. Auto-detects generate vs refine mode (refine when graph already exists). Also handles PNG export.
+File: app/src/diagram/generate.ts
+Sub-tags:
+  @diagram-generate-flow — generateDiagram() (auto generate/refine), handleDiagramSSE(), applyDiagramGraph(), applyDeltaOps()
+  @diagram-generate-ui — updateDiagramPromptUI(), showDiagramError()
+  @diagram-generate-export — exportDiagramPNG() via offscreen canvas at 2x
+
+---
+
+@diagram-index
+Barrel export for diagram module.
+File: app/src/diagram/index.ts
+
+---
+
+@app-diagram-mode
+Diagram mode init: wires prompt bar to generateDiagram() when mode === 'diagram'.
+File: app/src/diagram-mode.ts
+Sub-tags:
+  @app-diagram-mode-init — initDiagramMode(): binds click + Enter on prompt bar for diagram generation
+
+---
+
+@diagram-editing
+Diagram editing module: delta operation application, undo/redo stack, position overrides for manual node dragging, selection state, hit testing.
+File: app/src/diagram/editing.ts
+Sub-tags:
+  @diagram-editing-delta-apply — applyDelta(), applyDeltas(): applies DeltaOp mutations to DiagramGraph
+  @diagram-editing-undo-redo — pushDiagramUndo(), diagramUndo(), diagramRedo(), clearDiagramHistory(): snapshot-based undo/redo for diagram graph + position overrides
+  @diagram-editing-position-overrides — getPositionOverrides(), setNodePosition(), clearPositionOverrides(): manual node position overrides (survive re-layout)
+  @diagram-editing-relayout — relayout(), applyAndRelayout(): recomputes layout from graph, applies position overrides
+  @diagram-editing-selection — getSelectedNodeId(), selectNode(), hitTestDiagramNode(): node selection state and AABB hit testing
+
+---
+
+@diagram-inspector
+Inspector panel for selected diagram node. Shows/edits type, label, description, group, tags. Delete button.
+File: app/src/diagram/inspector.ts
+Sub-tags:
+  @diagram-inspector-init — initInspector(): subscribes to store for reactive re-render
+  @diagram-inspector-render — renderInspector(): builds inspector HTML from selected node data
+  @diagram-inspector-events — bindInspectorEvents(): change handlers for type/label/description/group/tags/delete → applyAndRelayout delta ops
+  @diagram-inspector-utils — escapeAttr()
+
+---
+
+@handle-diagram
+POST /v1/diagram handler. Supports generate mode (new diagram) and refine mode (delta operations on existing graph). Authenticates, rate limits, deducts credits, calls Claude, returns JSON.
+File: worker/routes/diagram.ts
+Sub-tags:
+  @handle-diagram-auth — API key + session auth (same as sketch)
+  @handle-diagram-ratelimit — 20 req/min per key
+  @handle-diagram-main — request validation, generate/refine mode dispatch
+  @handle-diagram-batch — non-streaming Claude call, JSON response
+  @handle-diagram-stream — SSE streaming: emits start, graph, done events
+  @handle-diagram-prompt — buildDiagramPrompt(): semantic graph system prompt. AI generates semantic model only — no positions. Model: claude-sonnet-4-20250514, 16K max tokens.
+  @handle-diagram-refine-prompt — buildRefinePrompt(): delta operations system prompt. AI outputs JSON array of DeltaOp. buildRefineUserPrompt(): formats current graph + user request.
+  @handle-diagram-utils — json(), extractJSON() (handles both objects and arrays)

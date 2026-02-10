@@ -1,7 +1,8 @@
 // @app-types
 import type { Scene, Component, StrokeNode, StyleName } from '@engine/types'
+import type { DiagramGraph, LayoutResult } from './diagram/types'
 
-export type AppMode = 'sketch' | 'design'
+export type AppMode = 'sketch' | 'design' | 'diagram'
 
 export type ToolType =
   | 'select'
@@ -52,6 +53,11 @@ export interface LayerInfo {
   locked: boolean
 }
 
+export interface DiagramState {
+  graph: DiagramGraph | null
+  layout: LayoutResult | null
+}
+
 export interface AppState {
   mode: AppMode
   tool: ToolType
@@ -60,11 +66,12 @@ export interface AppState {
   selection: SelectionState
   draw: DrawState
   design: DesignConfig
+  diagram: DiagramState
   layers: LayerInfo[]
   undoStack: Scene[]
   redoStack: Scene[]
   generating: boolean
 }
 
-export type { Scene, Component, StrokeNode, StyleName }
+export type { Scene, Component, StrokeNode, StyleName, DiagramGraph, LayoutResult }
 // @app-types-end

@@ -15,11 +15,13 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250124.0",
+    "@types/d3-path": "^3.1.1",
     "esbuild": "^0.25.0",
     "typescript": "^5.9.3",
     "wrangler": "^4.0.0"
   },
   "dependencies": {
-    "@cloudflare/kv-asset-handler": "^0.4.2"
+    "@cloudflare/kv-asset-handler": "^0.4.2",
+    "@dagrejs/dagre": "^2.0.4"
   }
 }

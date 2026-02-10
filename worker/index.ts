@@ -1,5 +1,6 @@
 // @worker-entry
 import { handleSketch } from './routes/sketch'
+import { handleDiagram } from './routes/diagram'
 import { handleAuth } from './routes/auth'
 import { getAssetFromKV, NotFoundError } from '@cloudflare/kv-asset-handler'
 // @ts-expect-error — injected by wrangler at build time for [site] config
@@ -42,6 +43,8 @@ export default {
       }
     } else if (path === '/v1/sketch' && method === 'POST') {
       response = await handleSketch(request, env, ctx)
+    } else if (path === '/v1/diagram' && method === 'POST') {
+      response = await handleDiagram(request, env, ctx)
     } else if (path === '/v1/health' && method === 'GET') {
       response = new Response(JSON.stringify({
         status: 'healthy',

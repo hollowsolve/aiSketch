@@ -1,5 +1,5 @@
 // @app-state
-import type { AppState, AppMode, ToolType, ViewportState, DesignConfig, LayerInfo, Scene } from './types'
+import type { AppState, AppMode, ToolType, ViewportState, DesignConfig, DiagramState, LayerInfo, Scene } from './types'
 
 // @app-state-defaults
 const DEFAULT_DESIGN_CONFIG: DesignConfig = {
@@ -52,6 +52,7 @@ class Store {
       selection: { selectedIds: new Set(), selectionBox: null },
       draw: { style: 'outline', color: '#1a1a1a', weight: 1 },
       design: { ...DEFAULT_DESIGN_CONFIG },
+      diagram: { graph: null, layout: null },
       layers: [...DEFAULT_LAYERS],
       undoStack: [],
       redoStack: [],
@@ -79,7 +80,15 @@ class Store {
 
   setMode(mode: AppMode) {
     const tool: ToolType = mode === 'sketch' ? 'draw' : 'select'
-    this.set({ mode, tool, scene: createEmptyScene(mode) })
+    if (mode === 'diagram') {
+      this.set({ mode, tool: 'select', diagram: { graph: null, layout: null } })
+    } else {
+      this.set({ mode, tool, scene: createEmptyScene(mode) })
+    }
+  }
+
+  setDiagram(diagram: Partial<DiagramState>) {
+    this.set({ diagram: { ...this.state.diagram, ...diagram } })
   }
 
   setTool(tool: ToolType) {
