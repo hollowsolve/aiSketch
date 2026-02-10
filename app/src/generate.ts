@@ -1,9 +1,10 @@
 // @app-generate
 import { store } from './state'
 import { animateScene, DEFAULT_ANIMATION_OPTIONS } from '@engine/animator'
+import { renderSingleStroke, renderSingleFill } from '@engine/renderer'
 import { DEFAULT_RENDER_OPTIONS } from '@engine/types'
 import { getCtx } from './viewport'
-import type { Scene } from '@engine/types'
+import type { Scene, SceneNode, StrokeNode, FillNode, Component } from '@engine/types'
 
 // @app-generate-flow
 export async function generateFromPrompt(prompt: string) {
@@ -18,7 +19,7 @@ export async function generateFromPrompt(prompt: string) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         prompt: prompt.trim(),
-        mode: mode === 'sketch' ? 'draw' : 'design',
+        mode: mode === 'sketch' ? 'draw' : mode,
         stream: true,
       }),
     })
@@ -33,8 +34,8 @@ export async function generateFromPrompt(prompt: string) {
     if (contentType.includes('text/event-stream')) {
       await handleSSEResponse(response)
     } else {
-      const data = await response.json() as { scene: Scene }
-      applyGeneratedScene(data.scene)
+      const scene = await response.json() as Scene
+      applyGeneratedScene(scene)
     }
   } catch (err) {
     console.error('Generation error:', err)
@@ -49,6 +50,12 @@ async function handleSSEResponse(response: Response) {
   const reader = response.body!.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
+  let pendingEventType = ''
+  let finalScene: Scene | null = null
+  const ctx = getCtx()
+  const opts = { ...DEFAULT_RENDER_OPTIONS }
+
+  store.pushUndo()
 
   while (true) {
     const { done, value } = await reader.read()
@@ -59,23 +66,72 @@ async function handleSSEResponse(response: Response) {
     buffer = lines.pop() || ''
 
     for (const line of lines) {
+      if (line.startsWith('event: ')) {
+        pendingEventType = line.slice(7).trim()
+        continue
+      }
       if (!line.startsWith('data: ')) continue
-      const data = line.slice(6).trim()
-      if (data === '[DONE]') return
+      const raw = line.slice(6).trim()
+      if (!raw || raw === '[DONE]') continue
+
+      const eventType = pendingEventType
+      pendingEventType = ''
 
       try {
-        const parsed = JSON.parse(data) as { scene?: Scene; error?: string }
-        if (parsed.error) {
-          showError(parsed.error)
+        const evt = JSON.parse(raw) as Record<string, unknown>
+
+        if (eventType === 'node') {
+          const node = evt as unknown as SceneNode
+          const current = store.get().scene
+          const updated = structuredClone(current)
+          updated.root.children.push(structuredClone(node))
+          store.set({ scene: updated })
+          renderIncrementalNode(ctx, node, opts)
+        }
+
+        if (eventType === 'scene') {
+          finalScene = evt as unknown as Scene
+        }
+
+        if (eventType === 'error') {
+          showError(evt.error as string)
           return
         }
-        if (parsed.scene) {
-          applyGeneratedScene(parsed.scene)
-        }
       } catch {
-        // partial JSON, continue
+        // partial JSON
       }
     }
+  }
+
+  if (finalScene) {
+    const current = store.get().scene
+    const merged = structuredClone(current)
+    merged.root.children = [...finalScene.root.children]
+    if (finalScene.background) merged.background = finalScene.background
+    store.set({ scene: merged })
+  }
+}
+
+function renderIncrementalNode(ctx: CanvasRenderingContext2D, node: SceneNode, opts: { wobble: number; fidelity: number; seed: number }) {
+  if (node.type === 'stroke') {
+    const flat = { node: node as StrokeNode, transforms: [] as Component['transform'][], depth: 0 }
+    renderSingleStroke(ctx, flat as Parameters<typeof renderSingleStroke>[1], opts)
+  } else if (node.type === 'fill') {
+    const flat = { node: node as FillNode, transforms: [] as Component['transform'][], depth: 0 }
+    renderSingleFill(ctx, flat as Parameters<typeof renderSingleFill>[1], opts)
+  } else if (node.type === 'component') {
+    const walk = (n: SceneNode) => {
+      if (n.type === 'stroke') {
+        const flat = { node: n, transforms: [] as Component['transform'][], depth: 0 }
+        renderSingleStroke(ctx, flat as Parameters<typeof renderSingleStroke>[1], opts)
+      } else if (n.type === 'fill') {
+        const flat = { node: n, transforms: [] as Component['transform'][], depth: 0 }
+        renderSingleFill(ctx, flat as Parameters<typeof renderSingleFill>[1], opts)
+      } else if (n.type === 'component') {
+        for (const child of n.children) walk(child)
+      }
+    }
+    walk(node)
   }
 }
 

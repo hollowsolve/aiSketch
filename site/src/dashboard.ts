@@ -1,7 +1,8 @@
 // @site-dashboard
-import { animateScene } from '@engine/index'
+import { animateScene, renderSingleStroke, renderSingleFill, collectStrokes } from '@engine/index'
 import type { AnimationHandle } from '@engine/animator'
-import type { Scene } from '@engine/types'
+import type { Scene, SceneNode, StrokeNode, FillNode, Component } from '@engine/types'
+import { DEFAULT_RENDER_OPTIONS } from '@engine/types'
 import './dashboard.css'
 
 // @site-dashboard-types
@@ -308,7 +309,6 @@ async function handleGenerate() {
       const scene = await handleSSEResponse(response)
       if (scene) {
         saveToHistory(prompt, mode, scene)
-        renderSceneOnCanvas(scene)
         input.value = ''
       }
     } else {
@@ -333,11 +333,29 @@ async function handleSSEResponse(response: Response): Promise<Scene | null> {
   const decoder = new TextDecoder()
   let buffer = ''
   let scene: Scene | null = null
-  let charCount = 0
+  let nodeCount = 0
+
+  if (animHandle) animHandle.cancel()
+  animHandle = null
+
+  const liveScene: Scene = {
+    name: 'generating',
+    version: '0.1.0',
+    mode,
+    canvas: { width: CANVAS_W, height: CANVAS_H },
+    root: {
+      name: 'root',
+      type: 'component',
+      transform: { origin: [0, 0], position: [0, 0], scale: [1, 1], rotation: 0 },
+      children: [],
+    },
+  }
 
   const genOverlay = document.getElementById('db-generating')
   const genLabel = genOverlay?.querySelector('span')
   const progress = document.getElementById('db-progress')
+  const opts = { ...DEFAULT_RENDER_OPTIONS, wobble: mode === 'design' ? 0.15 : 0.5, fidelity: mode === 'design' ? 0.9 : 0.7, seed: Math.floor(Math.random() * 10000) }
+  let pendingEventType = ''
 
   while (true) {
     const { done, value } = await reader.read()
@@ -346,28 +364,52 @@ async function handleSSEResponse(response: Response): Promise<Scene | null> {
     buffer += decoder.decode(value, { stream: true })
     const lines = buffer.split('\n')
     buffer = lines.pop() || ''
-
     for (const line of lines) {
+      if (line.startsWith('event: ')) {
+        pendingEventType = line.slice(7).trim()
+        continue
+      }
       if (!line.startsWith('data: ')) continue
       const raw = line.slice(6).trim()
       if (!raw || raw === '[DONE]') continue
 
+      const eventType = pendingEventType
+      pendingEventType = ''
+
       try {
         const evt = JSON.parse(raw) as Record<string, unknown>
-        if (evt.error) {
-          showError(evt.error as string)
-          return null
+
+        if (eventType === 'meta') {
+          liveScene.name = (evt.name as string) || 'scene'
+          liveScene.background = evt.background as string
+          if (ctx) {
+            ctx.fillStyle = liveScene.background || '#ffffff'
+            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H)
+          }
+          const emptyEl = document.getElementById('db-empty')
+          if (emptyEl) emptyEl.remove()
         }
-        if (evt.text) {
-          charCount += (evt.text as string).length
-          const expectedChars = mode === 'sketch' ? 20000 : 8000
-          const pct = Math.min(charCount / expectedChars, 0.95)
+
+        if (eventType === 'node') {
+          const node = evt as unknown as SceneNode
+          liveScene.root.children.push(node)
+          nodeCount++
+          renderIncrementalNode(node, opts)
+          const expectedNodes = mode === 'sketch' ? 120 : 70
+          const pct = Math.min(nodeCount / expectedNodes, 0.95)
           if (progress) progress.style.width = `${(pct * 100).toFixed(0)}%`
-          if (genLabel) genLabel.textContent = `Drawing scene... ${Math.round(pct * 100)}%`
+          if (genLabel) genLabel.textContent = `Drawing... ${nodeCount} elements`
         }
-        if (evt.root) {
+
+        if (eventType === 'scene') {
           scene = evt as unknown as Scene
           if (progress) progress.style.width = '100%'
+          setTimeout(() => { if (progress) progress.style.width = '0%' }, 800)
+        }
+
+        if (eventType === 'error') {
+          showError(evt.error as string)
+          return scene || (nodeCount > 0 ? liveScene : null)
         }
       } catch {
         // partial JSON
@@ -375,7 +417,32 @@ async function handleSSEResponse(response: Response): Promise<Scene | null> {
     }
   }
 
-  return scene
+  return scene || (nodeCount > 0 ? liveScene : null)
+}
+
+function renderIncrementalNode(node: SceneNode, opts: { wobble: number; fidelity: number; seed: number }) {
+  if (!ctx) return
+
+  if (node.type === 'stroke') {
+    const flat = { node: node as StrokeNode, transforms: [] as Component['transform'][], depth: 0 }
+    renderSingleStroke(ctx, flat as Parameters<typeof renderSingleStroke>[1], opts)
+  } else if (node.type === 'fill') {
+    const flat = { node: node as FillNode, transforms: [] as Component['transform'][], depth: 0 }
+    renderSingleFill(ctx, flat as Parameters<typeof renderSingleFill>[1], opts)
+  } else if (node.type === 'component') {
+    const walkAndRender = (n: SceneNode) => {
+      if (n.type === 'stroke') {
+        const flat = { node: n, transforms: [] as Component['transform'][], depth: 0 }
+        renderSingleStroke(ctx!, flat as Parameters<typeof renderSingleStroke>[1], opts)
+      } else if (n.type === 'fill') {
+        const flat = { node: n, transforms: [] as Component['transform'][], depth: 0 }
+        renderSingleFill(ctx!, flat as Parameters<typeof renderSingleFill>[1], opts)
+      } else if (n.type === 'component') {
+        for (const child of n.children) walkAndRender(child)
+      }
+    }
+    walkAndRender(node)
+  }
 }
 
 async function updateCredits() {

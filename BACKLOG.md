@@ -43,7 +43,7 @@ Pending work. Check off when done. Add context as you discover it.
 - [x] LLM-optimized compact format: style presets + [x,y] tuple points — Session 005 (~60% token reduction per scene)
 - [x] Artist-quality depth system: 3-plane depth (bg/mid/fg), 5 new expressive styles (gesture, underdrawing, crosshatch, highlight, scumble), compositional prompt rewrite — Session 005
 - [x] Sketch mode: pure brushwork, no fills, 80-130 strokes, 5-pass mark-making system (gesture→contour→value→detail→accent), 32K max tokens — Session 005
-- [ ] True incremental streaming: stream Claude tokens to client, incrementally parse JSON, render each stroke/fill as it completes (replaces fake progress bar)
+- [x] True incremental streaming: stream Claude tokens to client, incrementally parse JSON, render each stroke/fill as it completes (replaces fake progress bar) — Session 005
 - [ ] Add retry logic for malformed LLM JSON responses
 - [ ] Token usage tracking / cost estimation per generation
 

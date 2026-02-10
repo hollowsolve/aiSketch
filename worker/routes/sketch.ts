@@ -204,6 +204,18 @@ async function streamResponse(
     let buffer = ''
     let fullText = ''
 
+    let metaSent = false
+
+    const parser = createIncrementalParser(
+      (node) => { sendEvent('node', node) },
+      (meta) => {
+        if (!metaSent) {
+          metaSent = true
+          sendEvent('meta', { ...meta, mode, canvas, version: '0.1.0' })
+        }
+      }
+    )
+
     try {
       await sendEvent('start', { mode, canvas, version: '0.1.0' })
 
@@ -224,7 +236,7 @@ async function streamResponse(
             const event = JSON.parse(data)
             if (event.type === 'content_block_delta' && event.delta?.text) {
               fullText += event.delta.text
-              await sendEvent('delta', { text: event.delta.text })
+              parser.feed(event.delta.text)
             }
           } catch {
             // skip unparseable lines
@@ -262,6 +274,112 @@ async function streamResponse(
   })
 }
 // @handle-sketch-stream-end
+
+// @handle-sketch-incremental-parser
+function createIncrementalParser(
+  onNode: (node: Record<string, unknown>) => void,
+  onMeta: (meta: { name?: string; background?: string }) => void
+) {
+  let text = ''
+  let inChildren = false
+  let childDepth = 0
+  let childStart = -1
+  let inString = false
+  let escaped = false
+  let scanPos = 0
+  let metaExtracted = false
+
+  function tryExtractMeta() {
+    if (metaExtracted) return
+    const bgMatch = text.match(/"background"\s*:\s*"([^"]*)"/)
+    const nameMatch = text.match(/"name"\s*:\s*"([^"]*)"/)
+    if (bgMatch) {
+      metaExtracted = true
+      onMeta({ name: nameMatch?.[1], background: bgMatch[1] })
+    }
+  }
+
+  return {
+    feed(chunk: string) {
+      text += chunk
+
+      tryExtractMeta()
+
+      if (!inChildren) {
+        const marker = '"children"'
+        const idx = text.indexOf(marker, Math.max(0, scanPos - marker.length))
+        if (idx === -1) {
+          scanPos = text.length
+          return
+        }
+        const bracketIdx = text.indexOf('[', idx + marker.length)
+        if (bracketIdx === -1) {
+          scanPos = idx + marker.length
+          return
+        }
+        inChildren = true
+        scanPos = bracketIdx + 1
+      }
+
+      for (let i = scanPos; i < text.length; i++) {
+        const ch = text[i]
+
+        if (escaped) {
+          escaped = false
+          continue
+        }
+
+        if (ch === '\\' && inString) {
+          escaped = true
+          continue
+        }
+
+        if (ch === '"') {
+          inString = !inString
+          continue
+        }
+
+        if (inString) continue
+
+        if (ch === '{') {
+          if (childDepth === 0) {
+            childStart = i
+          }
+          childDepth++
+        } else if (ch === '}') {
+          childDepth--
+          if (childDepth === 0 && childStart !== -1) {
+            const jsonStr = text.slice(childStart, i + 1)
+            try {
+              const node = JSON.parse(jsonStr) as Record<string, unknown>
+              onNode(node)
+            } catch {
+              // incomplete or malformed child, skip
+            }
+            childStart = -1
+          }
+        } else if (ch === ']' && childDepth === 0) {
+          inChildren = false
+          const nextChildren = text.indexOf('"children"', i + 1)
+          if (nextChildren !== -1) {
+            const nextBracket = text.indexOf('[', nextChildren + 10)
+            if (nextBracket !== -1) {
+              inChildren = true
+              scanPos = nextBracket + 1
+              i = nextBracket
+              continue
+            }
+          }
+          scanPos = text.length
+          return
+        }
+      }
+
+      scanPos = text.length
+    },
+  }
+}
+// @handle-sketch-incremental-parser-end
 
 // @handle-sketch-prompt
 function buildSystemPrompt(

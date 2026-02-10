@@ -97,7 +97,8 @@ Sub-tags:
   @handle-sketch-ratelimit — 30 req/min per key
   @handle-sketch-main — request validation, mode dispatch
   @handle-sketch-batch — non-streaming Claude call, JSON response
-  @handle-sketch-stream — SSE streaming via Anthropic stream API
+  @handle-sketch-stream — SSE streaming with incremental node emission. Emits: start, meta (background+name), node (each stroke/fill/component as completed), scene (final complete), done
+  @handle-sketch-incremental-parser — createIncrementalParser(): brace-depth tracker extracts complete JSON objects from children arrays as they stream. Emits node + meta callbacks.
   @handle-sketch-prompt — buildSystemPrompt(), buildSketchPrompt(), DRAW_INSTRUCTIONS, DESIGN_INSTRUCTIONS. Three modes: draw (fills+strokes), design (technical), sketch (pure brushwork, 80-130 strokes, 5-pass mark-making system)
   @handle-sketch-utils — json(), extractJSON()
 
@@ -239,7 +240,7 @@ Sub-tags:
   @site-dashboard-init — showDashboard(), hideDashboard() — page takeover
   @site-dashboard-render — render(), renderHistory(), renderEmptyState(), renderKeysPanel()
   @site-dashboard-canvas — initCanvas(), scaleCanvas(), renderSceneOnCanvas() with animation
-  @site-dashboard-generate — handleGenerate() calls /v1/sketch with session auth, saves to history
+  @site-dashboard-generate — handleGenerate() calls /v1/sketch with session auth, incremental SSE rendering (meta→node→scene events), renderIncrementalNode() draws each stroke/fill as it arrives, saves to history
   @site-dashboard-history — saveToHistory(), loadScene(), deleteScene(), persistHistory() (localStorage)
   @site-dashboard-export — exportPNG(), exportJSON()
   @site-dashboard-events — bindEvents(), bindHistoryEvents(), bindKeysEvents()
@@ -328,7 +329,7 @@ Sub-tags:
 AI generation flow: prompt submission, SSE streaming, scene merging with animation.
 File: app/src/generate.ts
 Sub-tags:
-  @app-generate-flow — generateFromPrompt(), handleSSEResponse(), applyGeneratedScene()
+  @app-generate-flow — generateFromPrompt(), handleSSEResponse() with incremental node rendering, renderIncrementalNode(), applyGeneratedScene()
   @app-generate-ui — updatePromptUI(), showError()
 
 ---
