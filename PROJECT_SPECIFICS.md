@@ -7,7 +7,7 @@ Grep for `@tags` to find implementation details.
 ---
 
 @types
-Scene graph type definitions. LLM-facing types: Scene (mode: draw|design|sketch), Component, StrokeNode (style+color+weight, [x,y] points), FillNode ([x,y] points). Internal types: Brush, StrokePoint, InterpolatedPoint, ResolvedStyle. StyleName union type for 19 named presets.
+Scene graph type definitions. LLM-facing types: Scene (mode: draw|design|sketch), Component, StrokeNode (style+color+weight, [x,y] points), FillNode ([x,y] points, occlude?: boolean). Internal types: Brush, StrokePoint, InterpolatedPoint, ResolvedStyle. StyleName union type for 19 named presets.
 File: src/engine/types.ts
 
 ---
@@ -41,11 +41,11 @@ Sub-tags:
 ---
 
 @renderer
-Canvas 2D scene graph renderer. Walks tree, resolves styles via styles.ts, applies transforms, draws strokes and fills. Supports scene background color.
+Canvas 2D scene graph renderer. Walks tree, resolves styles via styles.ts, applies transforms, draws strokes and fills. Supports scene background color and fill occlusion.
 File: src/engine/renderer.ts
 Sub-tags:
   @renderer-collect-elements — collectStrokes(), flattens tree to sorted FlatElement list (strokes + fills)
-  @renderer-draw — renderScene() (background + elements), renderSingleStroke() (resolves style → brush), renderSingleFill()
+  @renderer-draw — renderScene() (background + elements), renderSingleStroke() (resolves style → brush), renderSingleFill() (occlusion via destination-out composite for fills at layer > 0, repaints background, then draws fill)
   @renderer-utils — hashString()
 
 ---
@@ -99,7 +99,7 @@ Sub-tags:
   @handle-sketch-batch — non-streaming Claude call, JSON response
   @handle-sketch-stream — SSE streaming with incremental node emission. Emits: start, meta (background+name), node (each stroke/fill/component as completed), scene (final complete), done
   @handle-sketch-incremental-parser — createIncrementalParser(): brace-depth tracker extracts complete JSON objects from children arrays as they stream. Emits node + meta callbacks.
-  @handle-sketch-prompt — buildSystemPrompt(), buildSketchPrompt(), DRAW_INSTRUCTIONS, DESIGN_INSTRUCTIONS. Three modes: draw (fills+strokes), design (technical), sketch (pure brushwork, 80-130 strokes, 5-pass mark-making system)
+  @handle-sketch-prompt — buildSystemPrompt(), buildSketchPrompt(), DRAW_INSTRUCTIONS, DESIGN_INSTRUCTIONS. Three modes: draw (fills+strokes, 30-60 fills + 80-150 strokes), design (technical), sketch (pure brushwork, 150-250 strokes, 5-pass mark-making system). Model: claude-opus-4-6, 32K max tokens. Prompts enforce full-canvas spatial distribution, subject scaling, and occlusion documentation.
   @handle-sketch-utils — json(), extractJSON()
 
 ---

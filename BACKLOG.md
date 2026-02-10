@@ -44,6 +44,10 @@ Pending work. Check off when done. Add context as you discover it.
 - [x] Artist-quality depth system: 3-plane depth (bg/mid/fg), 5 new expressive styles (gesture, underdrawing, crosshatch, highlight, scumble), compositional prompt rewrite — Session 005
 - [x] Sketch mode: pure brushwork, no fills, 80-130 strokes, 5-pass mark-making system (gesture→contour→value→detail→accent), 32K max tokens — Session 005
 - [x] True incremental streaming: stream Claude tokens to client, incrementally parse JSON, render each stroke/fill as it completes (replaces fake progress bar) — Session 005
+- [x] Occlusion system: foreground fills erase background lines behind them (destination-out composite) — Session 005
+- [x] Upgraded to Opus 4.6 model for higher quality scene generation — Session 005
+- [x] Increased detail: 32K tokens, richer stroke/fill counts, 3-15 points per stroke — Session 005
+- [x] Spatial distribution: prompts enforce full-canvas usage, subjects scaled to 40-60% of canvas — Session 005
 - [ ] Add retry logic for malformed LLM JSON responses
 - [ ] Token usage tracking / cost estimation per generation
 
