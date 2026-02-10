@@ -395,7 +395,7 @@ async function handleSSEResponse(response: Response): Promise<Scene | null> {
           liveScene.root.children.push(node)
           nodeCount++
           renderIncrementalNode(node, opts)
-          const expectedNodes = mode === 'sketch' ? 120 : 70
+          const expectedNodes = mode === 'sketch' ? 220 : 160
           const pct = Math.min(nodeCount / expectedNodes, 0.95)
           if (progress) progress.style.width = `${(pct * 100).toFixed(0)}%`
           if (genLabel) genLabel.textContent = `Drawing... ${nodeCount} elements`

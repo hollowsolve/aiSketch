@@ -120,7 +120,7 @@ async function batchResponse(
   mode: string,
   canvas: { width: number; height: number }
 ): Promise<Response> {
-  const maxTokens = mode === 'sketch' ? 32768 : 16384
+  const maxTokens = mode === 'design' ? 32768 : 65536
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -169,7 +169,7 @@ async function streamResponse(
   mode: string,
   canvas: { width: number; height: number }
 ): Promise<Response> {
-  const maxTokens = mode === 'sketch' ? 32768 : 16384
+  const maxTokens = mode === 'design' ? 32768 : 65536
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -409,21 +409,25 @@ Output ONLY valid JSON, no markdown/code fences.
   "name": "scene name",
   "background": "#faf8f4",
   "plan": [
-    "bg: warm sunset sky gradient — 2 overlapping fills, orange-to-pink",
-    "bg: distant mountains — 2 fills (desaturated blue-gray), outline-fine ridgelines",
-    "bg: atmospheric haze — scumble stroke across horizon",
-    "mid: rolling hills — 3 green fills, overlapping for depth",
-    "mid: old barn — body fill, roof fill, shadow fill on right side",
-    "mid: barn outlines — outline walls, outline-bold roof edge",
-    "mid: barn details — detail windows, door, weathervane",
-    "mid: barn shading — hatching on shadow side, crosshatch under eaves",
-    "mid: fence line — outline-fine posts receding into distance",
-    "fg: tall grass — gesture strokes, heavy weight",
-    "fg: wildflowers — soft marks with color",
-    "fg: foreground rock — accent stroke, bold outline",
-    "finish: underdrawing showing through barn construction",
-    "finish: highlight on barn roof, lit grass edges",
-    "finish: scumble dust haze near ground"
+    "bg: warm sunset sky gradient — 3-4 overlapping fills, layered orange-to-pink-to-purple",
+    "bg: distant mountains — 3 fills (desaturated blue-gray) at different depths, outline-fine ridgelines with multiple strokes",
+    "bg: atmospheric haze — 2-3 scumble/wash strokes across horizon, layered",
+    "bg: distant trees — soft silhouette fill, outline-fine suggestion strokes",
+    "mid: rolling hills — 4-5 green fills with overlapping contours, light/shadow variants",
+    "mid: old barn — body fill, roof fill, shadow fill on right side, lit wall fill",
+    "mid: barn outlines — 3-4 outline strokes per wall (overlapping, searching lines), outline-bold roof edge",
+    "mid: barn details — detail windows (multiple strokes each), door, weathervane, wood grain texture strokes",
+    "mid: barn shading — 8-12 hatching strokes on shadow side, crosshatch bank under eaves, shading on walls",
+    "mid: barn textures — texture strokes for wood siding, chalk marks for wear",
+    "mid: fence line — outline-fine posts (2-3 strokes each) receding into distance, wire strokes between",
+    "mid: path/ground — fill for path, hatching for ground shadows, texture for dirt",
+    "fg: tall grass — 10-15 gesture strokes at different angles, heavy weight, layered",
+    "fg: wildflowers — soft marks with multiple colors, scattered clusters",
+    "fg: foreground rock — accent stroke, bold outline, hatching for volume, texture for surface",
+    "fg: ground detail — crosshatch shadows, fallen leaves, small stones",
+    "finish: underdrawing showing through barn construction lines",
+    "finish: highlight on barn roof, lit grass edges, fence post tops",
+    "finish: scumble dust haze near ground, atmospheric wash over distance"
   ],
   "root": {
     "name": "root", "type": "component",
@@ -432,17 +436,17 @@ Output ONLY valid JSON, no markdown/code fences.
   }
 }
 
-The "plan" array is CRITICAL. Before drawing ANYTHING, list EVERY element you will create — organized by depth plane (bg/mid/fg/finish). Be specific: name the object, its type (fill/stroke), its style, and its purpose. Then create ALL of them in "root". Nothing in the plan should be missing from the scene.
+The "plan" array is CRITICAL. Before drawing ANYTHING, list EVERY element you will create — organized by depth plane (bg/mid/fg/finish). Be specific: name the object, its type (fill/stroke), its style, and its purpose. Plan MANY elements — a good scene has 30-60 fills and 80-150 strokes. Each object needs multiple strokes (outline + shading + detail + texture). Then create ALL of them in "root". Nothing in the plan should be missing from the scene.
 
 ## Fill node — colored closed shape:
 {"name":"sky","type":"fill","layer":0,"color":"#87CEEB","opacity":0.6,"points":[[0,0],[${canvas.width},0],[${canvas.width},${Math.round(canvas.height * 0.5)}],[0,${Math.round(canvas.height * 0.55)}]]}
 
-Points are [x,y] pairs. 4-12 points. Engine auto-closes and splines into hand-drawn curves.
+Points are [x,y] pairs. 4-20 points. More points = more organic shape. Engine auto-closes and splines into hand-drawn curves.
 
 ## Stroke node — brush path:
 {"name":"trunk","type":"stroke","layer":2,"style":"outline","color":"#3d2b1f","points":[[200,350],[198,280],[195,220]],"weight":1.2}
 
-Points are [x,y] pairs. 3-8 points. "style" = preset name. "weight" scales thickness (default 1).
+Points are [x,y] pairs. 3-15 points per stroke (more points = smoother, more detailed paths). "style" = preset name. "weight" scales thickness (default 1).
 
 ## Styles — organized by artistic purpose:
 
@@ -528,10 +532,12 @@ label — text-sized precise strokes
 
 ## Composition
 - USE THE FULL CANVAS. Background fills extend to edges.
-- 15-30 fills + 30-60 strokes for a rich scene
+- 30-60 fills + 80-150 strokes for a rich, detailed scene. MORE IS BETTER — don't hold back.
+- Every object needs MULTIPLE strokes: outlines, shading, detail, texture. A tree isn't 2 strokes — it's 10-20.
 - Create a clear focal point through contrast, detail density, and line weight
 - Use diagonal lines and overlapping forms to create movement
 - Leave some areas loose/empty — negative space is part of the composition
+- You have plenty of token budget. USE IT ALL. Build up layers of marks until the scene feels complete.
 
 ## Rules
 1. ALWAYS write "plan" before "root". Every plan item MUST have a corresponding node.
@@ -559,17 +565,23 @@ Output ONLY valid JSON, no markdown/code fences.
   "name": "scene name",
   "background": "#f5f0e8",
   "plan": [
-    "pass1: gesture lines — fast loose strokes capturing overall proportions and flow of subject",
-    "pass1: underdrawing — light construction lines for major structures",
-    "pass2: contour — 2-3 overlapping searching lines per major edge, NOT one clean line",
-    "pass2: cross-contour — lines that wrap around rounded forms to show volume",
-    "pass3: hatching bank A — 5-8 parallel lines for primary shadow area (under eaves, cast shadow)",
-    "pass3: hatching bank B — 4-6 parallel lines for secondary shadow",
-    "pass3: crosshatch — layer over deepest shadow areas",
-    "pass4: detail cluster — concentrated marks at focal point (face, window, key feature)",
-    "pass4: texture marks — surface quality hints (bark, stone, fabric)",
-    "pass5: accent strokes — 3-5 bold decisive marks at strongest shadow transitions",
-    "pass5: highlight — 2-3 faint marks suggesting light catching edges",
+    "pass1: gesture lines — 5-10 fast loose strokes capturing overall proportions and flow of subject",
+    "pass1: underdrawing — 8-12 light construction lines for major structures, proportions, perspective",
+    "pass2: primary contours — 2-3 overlapping searching lines per EVERY major edge, NOT one clean line",
+    "pass2: secondary contours — background forms, smaller objects, each with overlapping strokes",
+    "pass2: cross-contour — 8-15 lines that wrap around ALL rounded forms to show volume",
+    "pass3: hatching bank A — 8-12 parallel lines for primary shadow area (under eaves, cast shadow)",
+    "pass3: hatching bank B — 6-10 parallel lines for secondary shadow area",
+    "pass3: hatching bank C — 6-8 parallel lines for tertiary shadows (ground, background)",
+    "pass3: crosshatch — layer over deepest shadow areas, multiple banks at different angles",
+    "pass3: broad shading — soft charcoal marks for large shadow areas",
+    "pass4: detail cluster A — concentrated marks at focal point (face, window, key feature)",
+    "pass4: detail cluster B — secondary focal point details",
+    "pass4: texture marks — surface quality hints throughout (bark, stone, fabric, metal, wood)",
+    "pass4: cross-contour details — more wrapping lines on secondary forms",
+    "pass5: accent strokes — 5-10 bold decisive marks at strongest shadow transitions",
+    "pass5: highlight — 3-6 faint marks suggesting light catching edges",
+    "pass5: finishing gestures — 5-8 energy marks tying the composition together",
     "pass5: negative space — areas intentionally LEFT EMPTY where light hits"
   ],
   "root": {
@@ -579,7 +591,7 @@ Output ONLY valid JSON, no markdown/code fences.
   }
 }
 
-The "plan" is CRITICAL. Organize by pass, not by object. Think like an artist building up the drawing in layers of mark-making, not like a programmer listing shapes. Every plan item MUST appear in the scene.
+The "plan" is CRITICAL. Organize by pass, not by object. Think like an artist building up the drawing in layers of mark-making, not like a programmer listing shapes. Plan MANY elements — a great sketch has 150-250 strokes. You have a large token budget, so use it ALL. Every plan item MUST appear in the scene.
 
 ## NO FILLS. Strokes only.
 The paper background IS your lightest value. ALL tone, shadow, and form come from accumulated line work. Never use fill nodes.
@@ -587,7 +599,7 @@ The paper background IS your lightest value. ALL tone, shadow, and form come fro
 ## Stroke node:
 {"name":"trunk-contour-1","type":"stroke","layer":3,"style":"outline","color":"#2a2420","points":[[200,350],[198,280],[195,220]],"weight":1.2}
 
-Points are [x,y] pairs. 3-8 points per stroke. "weight" scales thickness (default 1).
+Points are [x,y] pairs. 3-15 points per stroke (more points = smoother, more detailed curves). "weight" scales thickness (default 1).
 
 ## Mark-making styles — your vocabulary:
 
@@ -619,34 +631,37 @@ Use a SINGLE dark color with variations. This is a SKETCH, not a painting.
 
 ## The 5-pass system — ALWAYS follow this:
 
-### Pass 1: Gesture & Construction (layers 0-1, 8-15 strokes)
-- "gesture" strokes to capture the BIG shapes and flow. 3-5 fast sweeping marks.
+### Pass 1: Gesture & Construction (layers 0-1, 15-25 strokes)
+- "gesture" strokes to capture the BIG shapes and flow. 5-10 fast sweeping marks.
 - "underdrawing" for structural framework. Where are the forms? What overlaps what?
 - These are LOOSE. They won't perfectly align with later passes. That's the point.
 
-### Pass 2: Contour (layers 2-3, 20-35 strokes)
+### Pass 2: Contour (layers 2-3, 40-65 strokes)
 - Define every major form with 2-3 overlapping contour lines. NOT one clean outline.
 - Vary weight: heavier toward viewer, lighter away. Heavier on shadow side, lighter on lit side.
 - Break the contour — don't draw every edge. Leave gaps where the form turns into light.
 - Use "outline" for main forms, "outline-fine" for background, "sketch" for organic edges.
-- Add cross-contour lines on rounded forms (3-5 curved lines that wrap around the surface).
+- Add cross-contour lines on rounded forms (5-10 curved lines that wrap around the surface).
+- EVERY significant edge gets multiple strokes. Don't skimp — this is where form lives.
 
-### Pass 3: Value (layers 4-5, 25-40 strokes)
+### Pass 3: Value (layers 4-5, 50-80 strokes)
 - Decide where light comes from (usually upper-left or upper-right)
-- Apply hatching in the shadow areas. Each shadow gets a BANK of 4-8 parallel strokes.
+- Apply hatching in the shadow areas. Each shadow gets a BANK of 6-12 parallel strokes.
 - Hatching lines should follow the form's surface direction.
 - Apply crosshatch over the DEEPEST shadows only (core shadow, cast shadow undersides).
+- Build up MULTIPLE banks of hatching at different angles for rich tonal depth.
 - Leave lit areas COMPLETELY EMPTY — the paper does the work.
 
-### Pass 4: Detail & Texture (layers 6-7, 15-25 strokes)
+### Pass 4: Detail & Texture (layers 6-7, 30-50 strokes)
 - Concentrate detail at the FOCAL POINT. The rest stays loose.
 - "detail" strokes for small features: eyes, windows, hinges, buttons.
 - "texture" marks for surface quality: only where it matters most.
 - Cross-contour lines on secondary forms.
+- Add more detail to secondary objects too — they deserve attention.
 
-### Pass 5: Accents & Highlights (layers 8-9, 5-12 strokes)
-- "accent" with weight 2-3 at the 3-5 strongest edges (where darkest shadow meets lightest light)
-- "highlight" very faintly on 2-3 lit edges
+### Pass 5: Accents & Highlights (layers 8-9, 10-25 strokes)
+- "accent" with weight 2-3 at the 5-10 strongest edges (where darkest shadow meets lightest light)
+- "highlight" very faintly on 3-6 lit edges
 - A few "gesture" finishing marks for energy
 - Step back: does it read? Is there a clear focal point? Is there enough value range?
 
@@ -661,10 +676,12 @@ Use a SINGLE dark color with variations. This is a SKETCH, not a painting.
 
 ## Composition
 - USE THE FULL CANVAS for the composition, but NOT every area needs marks
-- 80-130 strokes total for a rich, professional sketch
-- 30-40% of the canvas should be EMPTY (lit areas, sky, negative space)
+- 150-250 strokes total for a rich, detailed, professional sketch. MORE IS BETTER.
+- You have a huge token budget — USE IT ALL. Build up layers upon layers of marks.
+- 25-35% of the canvas should be EMPTY (lit areas, sky, negative space)
 - Focal point gets 40%+ of all strokes concentrated in 20% of the area
-- Background objects get barely 5-10 strokes total — just suggestion
+- Background objects get 10-20 strokes — enough to suggest form, not just outlines
+- Secondary objects deserve real attention too: hatching, cross-contour, texture
 
 ## Rules
 1. ALWAYS write "plan" before "root", organized by pass number.
@@ -678,7 +695,7 @@ Use a SINGLE dark color with variations. This is a SKETCH, not a painting.
 9. This is a SKETCH — it should look like a real artist drew it in a Moleskine with a single pencil.`
 }
 
-const DRAW_INSTRUCTIONS = `Artistic illustration mode. You are a skilled artist making a real sketch — not a flat diagram.
+const DRAW_INSTRUCTIONS = `Artistic illustration mode. You are a skilled artist creating a RICH, DETAILED scene — not a flat diagram. You have a large token budget so create as much detail as possible.
 
 THINK BEFORE DRAWING: Where is the viewer? What's the light source? What overlaps what? What's the focal point?
 
@@ -690,7 +707,11 @@ THINK BEFORE DRAWING: Where is the viewer? What's the light source? What overlap
 - Weight varies with distance: heavy near (2-3), light far (0.5-0.7)
 - Warm rich palettes. Desaturate and cool colors as they recede.
 - NOT everything needs hard outlines — use "soft"/"gesture" for organic forms, save "outline-bold" for focal edges
-- Include loose marks, imperfect lines, overlapping strokes — this is a SKETCH, not a diagram`
+- Include loose marks, imperfect lines, overlapping strokes — this is a SKETCH, not a diagram
+- EVERY object needs: fill(s) for color, outline strokes for edges, hatching/shading for form, detail strokes for features
+- Build up LAYERS of marks. A tree isn't 3 strokes — it's 15-25 (trunk outlines, branch lines, foliage gesture marks, shadow hatching, bark texture)
+- A building isn't 4 fills and 4 lines — it's 6-8 fills and 20-30 strokes (walls, shadows, window details, roof texture, structural lines, material texture)
+- Don't stop until the scene feels COMPLETE and RICH`
 
 const DESIGN_INSTRUCTIONS = `Design mode. Spatial logic, proportion, function, legibility.
 - Use "construction"/"dimension"/"label" styles for precision
