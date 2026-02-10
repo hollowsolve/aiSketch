@@ -97,9 +97,9 @@ Sub-tags:
   @handle-sketch-ratelimit — 30 req/min per key
   @handle-sketch-main — request validation, mode dispatch
   @handle-sketch-batch — non-streaming Claude call, JSON response
-  @handle-sketch-stream — SSE streaming with incremental node emission. Emits: start, meta (background+name), node (each stroke/fill/component as completed), scene (final complete), done
-  @handle-sketch-incremental-parser — createIncrementalParser(): brace-depth tracker extracts complete JSON objects from children arrays as they stream. Emits node + meta callbacks.
-  @handle-sketch-prompt — buildSystemPrompt(), buildSketchPrompt(), DRAW_INSTRUCTIONS, DESIGN_INSTRUCTIONS. Three modes: draw (fills+strokes, 30-60 fills + 80-150 strokes), design (technical), sketch (pure brushwork, 150-250 strokes, 5-pass mark-making system). Model: claude-opus-4-6, 32K max tokens. Prompts enforce full-canvas spatial distribution, subject scaling, and occlusion documentation.
+  @handle-sketch-stream — SSE streaming with incremental node emission. Emits: start, meta (background+name), vision (artistic vision block), node (each stroke/fill/component as completed), scene (final complete), done
+  @handle-sketch-incremental-parser — createIncrementalParser(): brace-depth tracker extracts complete JSON objects from children arrays as they stream. Emits node, meta, and vision callbacks. Vision extraction uses nested brace-depth parsing to extract the vision object.
+  @handle-sketch-prompt — buildSystemPrompt(), buildSketchPrompt(), DRAW_INSTRUCTIONS, DESIGN_INSTRUCTIONS. Three modes: draw (fills+strokes, 10-20 fills + 30-60 strokes), design (technical), sketch (pure brushwork, 40-80 strokes). Section-by-section composition: each object is a complete component (fills+strokes together), rendered back-to-front. Plan organized by section not by pass. Per-section stroke budgets (background 2-4, supporting 3-8, focal 8-20). Model: claude-opus-4-6, 32K max tokens. Prompts enforce artistic vision block, no-duplicate-stroke rule, and full-canvas spatial distribution.
   @handle-sketch-utils — json(), extractJSON()
 
 ---

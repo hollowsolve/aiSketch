@@ -48,6 +48,8 @@ Pending work. Check off when done. Add context as you discover it.
 - [x] Upgraded to Opus 4.6 model for higher quality scene generation — Session 005
 - [x] Increased detail: 32K tokens, richer stroke/fill counts, 3-15 points per stroke — Session 005
 - [x] Spatial distribution: prompts enforce full-canvas usage, subjects scaled to 40-60% of canvas — Session 005
+- [x] Artistic vision block: LLM outputs feeling, references, keyChallenge, successCriteria, avoidPitfalls before planning — forces domain expertise engagement before geometry. Draw + sketch modes. Vision SSE event for streaming. — Session 006
+- [x] Section-by-section composition: each object is a self-contained component (fills+strokes together), drawn completely before moving to the next, rendered back-to-front. Per-section stroke budgets (bg 2-4, supporting 3-8, focal 8-20, finishing 3-6). Replaced interleaved pass system that caused incoherent anatomy. Draw mode: 10-20 fills + 30-60 strokes. Sketch mode: 40-80 strokes. — Session 006
 - [ ] Add retry logic for malformed LLM JSON responses
 - [ ] Token usage tracking / cost estimation per generation
 
@@ -74,6 +76,14 @@ Build as web app first (app/ directory, Vite + vanilla TS), wrap native later (T
 - [x] Annotation system (callouts, notes, specifications) — Session 003
 - [x] Sheet border with title block (project name, scale, date, revision) — Session 003
 - [x] Layer system: structure, dimensions, annotations, furniture, zones — Session 003
+
+### Diagram Mode (AI-first engineering diagrams) — specced Session 006
+Build as new `'diagram'` mode, separate from sketch/design. AI-first architectural diagram editor.
+- [ ] Phase 1: Generate + View + Export — new mode, semantic graph AI prompt, dagre layout engine, diagram renderer (typed shapes, routed links, labels, groups — separate pipeline from sketch engine), canvas viewport, prompt bar, PNG export
+- [ ] Phase 2: Edit + Refine — select/drag nodes, inspector panel, conversational refinement via delta operations (addNode/removeNode/addLink/etc., not full replacement), undo/redo command stack, type-changing in inspector
+- [ ] Phase 3: Depth + Flow — composite nodes with lazy sub-diagram generation, drill-in/breadcrumb navigation, cross-boundary port rendering, AI-generated flows from prompts, flow display (numbered badges, color overlay, animated pulse), click-to-trace manual flow creation
+- [ ] Phase 4: Power — tag-based Views (semantic filtering), Kit customization, SVG export, structured JSON export
+Core abstractions: Node (typed: service/database/queue/etc.), Link (typed: sync/async/data/event), Group (typed: boundary/VPC/team), Depth (lazy composite nodes + ports), Flow (ordered path traversal), Note (metadata on any element), View (tag-based semantic filter), Kit (type system + visual rules). Data model: semantic layer (AI generates, no positions) + visual layer (layout engine computes positions/routes). Delta operations for conversational refinement preserving manual edits.
 
 ## Editor (Phase 2)
 
