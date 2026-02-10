@@ -3,6 +3,7 @@ import type { Scene, SceneNode, StrokeNode, FillNode, Component, RenderOptions }
 import { interpolateSpline } from './spline'
 import { applyWobble, applyTaper, applyOvershoot } from './wobble'
 import { renderBrushStroke } from './brush'
+import { resolveStyle, strokeToPoints, fillToPoints } from './styles'
 
 // @renderer-collect-elements
 export interface FlatElement {
@@ -65,6 +66,8 @@ export function renderSingleStroke(
   opts: RenderOptions
 ) {
   const { node, transforms } = flat
+  const resolved = resolveStyle(node)
+  const rawPoints = strokeToPoints(node.points, resolved)
 
   ctx.save()
   for (const t of transforms) {
@@ -74,15 +77,15 @@ export function renderSingleStroke(
     ctx.translate(-t.origin[0], -t.origin[1])
   }
 
-  ctx.fillStyle = node.brush.color || '#1a1a1a'
+  ctx.fillStyle = resolved.brush.color || '#1a1a1a'
 
-  let points = interpolateSpline(node.points, node.tension)
+  let points = interpolateSpline(rawPoints, resolved.tension)
   const strokeSeed = hashString(node.name) + opts.seed
   points = applyWobble(points, opts, strokeSeed)
   points = applyTaper(points)
   points = applyOvershoot(points, opts.fidelity, strokeSeed + 999)
 
-  renderBrushStroke(ctx, points, node.brush, { ...opts, seed: strokeSeed })
+  renderBrushStroke(ctx, points, resolved.brush, { ...opts, seed: strokeSeed })
 
   ctx.restore()
 }
@@ -103,10 +106,8 @@ export function renderSingleFill(
     ctx.translate(-t.origin[0], -t.origin[1])
   }
 
-  const fillPoints = node.points.map(p => ({
-    x: p.x, y: p.y, w: 1, o: 1, h: 1
-  }))
-  let interpolated = interpolateSpline(fillPoints, node.tension)
+  const rawPoints = fillToPoints(node.points)
+  let interpolated = interpolateSpline(rawPoints, 0.4)
 
   const seed = hashString(node.name) + opts.seed
   const wobbleOpts = { ...opts, wobble: opts.wobble * 0.3 }

@@ -27,18 +27,23 @@ Pending work. Check off when done. Add context as you discover it.
 
 ## Rendering Engine
 
-- [x] types.ts — Scene graph type definitions — Session 001, FillNode + background added Session 004
+- [x] types.ts — Scene graph type definitions — Session 001, FillNode + background Session 004, LLM-optimized format Session 005
+- [x] styles.ts — Style preset resolver (19 named styles → brush configs) — Session 005
 - [x] spline.ts — Catmull-Rom interpolation — Session 001
 - [x] brush.ts — Brush stamp system (8 types) + color support — Session 001, color Session 004
 - [x] wobble.ts — Hand tremor, taper, overshoot — Session 001
-- [x] renderer.ts — Canvas 2D scene graph renderer + fill rendering + background — Session 001, fills Session 004
-- [x] animator.ts — Layer-ordered animation sequencer + fill fade-in — Session 001, fills Session 004
+- [x] renderer.ts — Canvas 2D scene graph renderer + fill rendering + background — Session 001, fills Session 004, style resolution Session 005
+- [x] animator.ts — Layer-ordered animation sequencer + fill fade-in — Session 001, fills Session 004, compact points Session 005
 
 ## Generation API
 
 - [x] worker/index.ts — Worker entry, routing — Session 001
 - [x] worker/routes/sketch.ts — /v1/sketch handler + LLM prompt + SSE — Session 001
 - [x] Tune system prompt for higher quality scene graphs — Session 004 (fills + strokes workflow, color, background)
+- [x] LLM-optimized compact format: style presets + [x,y] tuple points — Session 005 (~60% token reduction per scene)
+- [x] Artist-quality depth system: 3-plane depth (bg/mid/fg), 5 new expressive styles (gesture, underdrawing, crosshatch, highlight, scumble), compositional prompt rewrite — Session 005
+- [x] Sketch mode: pure brushwork, no fills, 80-130 strokes, 5-pass mark-making system (gesture→contour→value→detail→accent), 32K max tokens — Session 005
+- [ ] True incremental streaming: stream Claude tokens to client, incrementally parse JSON, render each stroke/fill as it completes (replaces fake progress bar)
 - [ ] Add retry logic for malformed LLM JSON responses
 - [ ] Token usage tracking / cost estimation per generation
 
@@ -54,7 +59,7 @@ Build as web app first (app/ directory, Vite + vanilla TS), wrap native later (T
 - [x] Selection + transforms — hit testing, selection box, move/scale/rotate handles — Session 003
 - [x] Undo/redo — command pattern on scene graph mutations — Session 003
 - [x] File operations — new, open, save (.aisketch JSON), export PNG — Session 003
-- [x] Layer panel, brush picker, color picker — Session 003
+- [x] Layer panel, style picker (19 presets), color picker — Session 003, style presets Session 005, depth styles Session 005
 
 ### Design Mode (professional design sheets)
 - [x] Dimension lines with auto-calculated real measurements — Session 003

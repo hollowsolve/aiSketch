@@ -145,6 +145,12 @@ function renderPartialStroke(
   }
 
   const { node, transforms } = flat
+  const totalPoints = node.points.length
+  const visibleCount = Math.max(2, Math.ceil(totalPoints * progress))
+  const partialPoints = node.points.slice(0, visibleCount)
+
+  const partialNode = { ...node, points: partialPoints }
+  const partialFlat = { node: partialNode, transforms: [] as typeof transforms, depth: flat.depth }
 
   ctx.save()
   for (const t of transforms) {
@@ -153,14 +159,6 @@ function renderPartialStroke(
     ctx.scale(t.scale[0], t.scale[1])
     ctx.translate(-t.origin[0], -t.origin[1])
   }
-
-  const totalPoints = node.points.length
-  const visibleCount = Math.max(2, Math.ceil(totalPoints * progress))
-  const partialPoints = node.points.slice(0, visibleCount)
-
-  const partialNode = { ...node, points: partialPoints }
-  const partialFlat = { node: partialNode, transforms: [] as typeof transforms, depth: flat.depth }
-
   ctx.restore()
 
   renderSingleStroke(ctx, partialFlat, opts)

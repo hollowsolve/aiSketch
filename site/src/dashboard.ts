@@ -22,7 +22,7 @@ interface DashboardApiKey {
 interface SavedScene {
   id: string
   prompt: string
-  mode: 'draw' | 'design'
+  mode: 'draw' | 'design' | 'sketch'
   scene: Scene
   createdAt: number
 }
@@ -39,7 +39,7 @@ let apiKeys: DashboardApiKey[] = []
 let callbacks: DashboardCallbacks
 let scenes: SavedScene[] = []
 let activeSceneId: string | null = null
-let mode: 'draw' | 'design' = 'draw'
+let mode: 'draw' | 'design' | 'sketch' = 'draw'
 let generating = false
 let animHandle: AnimationHandle | null = null
 let canvas: HTMLCanvasElement | null = null
@@ -142,6 +142,7 @@ function render() {
         <div class="db-prompt-bar">
           <div class="db-mode-toggle">
             <button class="db-mode-btn ${mode === 'draw' ? 'active' : ''}" data-mode="draw">Draw</button>
+            <button class="db-mode-btn ${mode === 'sketch' ? 'active' : ''}" data-mode="sketch">Sketch</button>
             <button class="db-mode-btn ${mode === 'design' ? 'active' : ''}" data-mode="design">Design</button>
           </div>
           <div class="db-prompt-input-wrap">
@@ -249,8 +250,8 @@ function renderSceneOnCanvas(scene: Scene) {
   const progress = document.getElementById('db-progress')
 
   animHandle = animateScene(ctx, scene, {
-    wobble: mode === 'draw' ? 0.5 : 0.15,
-    fidelity: mode === 'draw' ? 0.7 : 0.9,
+    wobble: mode === 'design' ? 0.15 : 0.5,
+    fidelity: mode === 'design' ? 0.9 : 0.7,
     seed: Math.floor(Math.random() * 10000),
     strokeDuration: 350,
     layerPause: 180,
@@ -359,7 +360,8 @@ async function handleSSEResponse(response: Response): Promise<Scene | null> {
         }
         if (evt.text) {
           charCount += (evt.text as string).length
-          const pct = Math.min(charCount / 8000, 0.95)
+          const expectedChars = mode === 'sketch' ? 20000 : 8000
+          const pct = Math.min(charCount / expectedChars, 0.95)
           if (progress) progress.style.width = `${(pct * 100).toFixed(0)}%`
           if (genLabel) genLabel.textContent = `Drawing scene... ${Math.round(pct * 100)}%`
         }
@@ -398,7 +400,7 @@ function showError(msg: string) {
 // @site-dashboard-generate-end
 
 // @site-dashboard-history
-function saveToHistory(prompt: string, m: 'draw' | 'design', scene: Scene) {
+function saveToHistory(prompt: string, m: 'draw' | 'design' | 'sketch', scene: Scene) {
   const saved: SavedScene = {
     id: crypto.randomUUID(),
     prompt,
@@ -511,7 +513,7 @@ function bindEvents() {
 
   document.querySelectorAll('.db-mode-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      mode = ((btn as HTMLElement).dataset.mode || 'draw') as 'draw' | 'design'
+      mode = ((btn as HTMLElement).dataset.mode || 'draw') as 'draw' | 'design' | 'sketch'
       updateModeButtons()
     })
   })

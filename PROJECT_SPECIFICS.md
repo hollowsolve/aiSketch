@@ -7,7 +7,7 @@ Grep for `@tags` to find implementation details.
 ---
 
 @types
-Scene graph type definitions: Scene (+ background field), Component, StrokeNode, FillNode, Brush (+ color field), StrokePoint, InterpolatedPoint, RenderOptions
+Scene graph type definitions. LLM-facing types: Scene (mode: draw|design|sketch), Component, StrokeNode (style+color+weight, [x,y] points), FillNode ([x,y] points). Internal types: Brush, StrokePoint, InterpolatedPoint, ResolvedStyle. StyleName union type for 19 named presets.
 File: src/engine/types.ts
 
 ---
@@ -41,11 +41,11 @@ Sub-tags:
 ---
 
 @renderer
-Canvas 2D scene graph renderer. Walks tree, applies transforms, draws strokes and fills. Supports scene background color.
+Canvas 2D scene graph renderer. Walks tree, resolves styles via styles.ts, applies transforms, draws strokes and fills. Supports scene background color.
 File: src/engine/renderer.ts
 Sub-tags:
   @renderer-collect-elements — collectStrokes(), flattens tree to sorted FlatElement list (strokes + fills)
-  @renderer-draw — renderScene() (background + elements), renderSingleStroke(), renderSingleFill()
+  @renderer-draw — renderScene() (background + elements), renderSingleStroke() (resolves style → brush), renderSingleFill()
   @renderer-utils — hashString()
 
 ---
@@ -56,6 +56,15 @@ File: src/engine/animator.ts
 Sub-tags:
   @animator-partial — renderPartialStroke(), renderPartialFill(), progressive reveal
   animateScene() — returns AnimationHandle with cancel/pause/resume. Handles background color.
+
+---
+
+@styles
+Style preset resolver. Maps StyleName → ResolvedStyle (Brush + tension). 19 presets organized by purpose: Structure (outline, outline-bold, outline-fine, detail), Expression (sketch, gesture, underdrawing, accent), Value/Depth (hatching, crosshatch, shading, highlight), Atmosphere (soft, wash, scumble, texture), Technical (construction, dimension, label).
+File: src/engine/styles.ts
+Sub-tags:
+  @styles-presets — STYLE_PRESETS record, full brush configs per style
+  @styles-resolve — resolveStyle(), strokeToPoints(), fillToPoints()
 
 ---
 
@@ -89,7 +98,7 @@ Sub-tags:
   @handle-sketch-main — request validation, mode dispatch
   @handle-sketch-batch — non-streaming Claude call, JSON response
   @handle-sketch-stream — SSE streaming via Anthropic stream API
-  @handle-sketch-prompt — buildSystemPrompt(), DRAW_INSTRUCTIONS, DESIGN_INSTRUCTIONS
+  @handle-sketch-prompt — buildSystemPrompt(), buildSketchPrompt(), DRAW_INSTRUCTIONS, DESIGN_INSTRUCTIONS. Three modes: draw (fills+strokes), design (technical), sketch (pure brushwork, 80-130 strokes, 5-pass mark-making system)
   @handle-sketch-utils — json(), extractJSON()
 
 ---
@@ -114,10 +123,10 @@ Sub-tags:
 ---
 
 @site-scenes
-Hardcoded demo scenes for the landing page (hero, draw mode, design mode, demo).
+Hardcoded demo scenes for the landing page (hero, draw mode, design mode, demo). Uses new compact format (style + [x,y] points).
 File: site/src/scenes.ts
 Sub-tags:
-  @site-scene-utils — brush/transform helper constructors
+  @site-scene-utils — transform helper constructor
   @site-hero-scene — HERO_SCENE: cozy cabin in woods
   @site-draw-mode-scene — DRAW_MODE_SCENE: vintage bicycle with flowers
   @site-design-mode-scene — DESIGN_MODE_SCENE: one bedroom apartment floor plan
@@ -270,7 +279,7 @@ File: app/vite.config.ts
 ---
 
 @app-types
-App-level type definitions: AppMode, ToolType, ViewportState, SelectionState, DrawState, DesignConfig, LayerInfo, AppState.
+App-level type definitions: AppMode, ToolType, ViewportState, SelectionState, DrawState (style: StyleName, color, weight), DesignConfig, LayerInfo, AppState.
 File: app/src/types.ts
 
 ---
@@ -325,11 +334,11 @@ Sub-tags:
 ---
 
 @app-panels
-Side panel UI: tool grid, brush picker, color picker, layer list, properties panel.
+Side panel UI: tool grid, style picker, color picker, layer list, properties panel.
 File: app/src/panels.ts
 Sub-tags:
   @app-panels-tools — SKETCH_TOOLS, DESIGN_TOOLS, renderToolGrid()
-  @app-panels-brush — brush type selector, size/opacity/hardness sliders
+  @app-panels-brush — style preset selector (12 styles) + weight slider
   @app-panels-color — 15-color palette grid + custom color input
   @app-panels-layers — layer list with visibility/lock toggles, addLayer()
   @app-panels-properties — design config (scale, grid, snap) + selection info

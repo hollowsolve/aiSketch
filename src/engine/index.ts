@@ -1,9 +1,6 @@
 // @engine-index
 export type {
-  StrokePoint,
-  BrushType,
-  BrushJitter,
-  Brush,
+  StyleName,
   StrokeNode,
   FillNode,
   Transform,
@@ -11,8 +8,13 @@ export type {
   Component,
   SceneNode,
   Scene,
-  InterpolatedPoint,
+  ResolvedStyle,
   RenderOptions,
+  BrushType,
+  BrushJitter,
+  Brush,
+  StrokePoint,
+  InterpolatedPoint,
 } from './types'
 
 export { DEFAULT_RENDER_OPTIONS, DEFAULT_BRUSH } from './types'
@@ -21,6 +23,7 @@ export { applyWobble, applyTaper, applyOvershoot } from './wobble'
 export { renderBrushStroke } from './brush'
 export { renderScene, collectStrokes, renderSingleStroke, renderSingleFill } from './renderer'
 export { animateScene, DEFAULT_ANIMATION_OPTIONS } from './animator'
+export { resolveStyle, strokeToPoints, fillToPoints, STYLE_PRESETS } from './styles'
 export type { AnimationOptions, AnimationHandle } from './animator'
 export type { FlatStroke, FlatElement } from './renderer'
 // @engine-index-end

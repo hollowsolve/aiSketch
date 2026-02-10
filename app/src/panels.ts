@@ -1,6 +1,6 @@
 // @app-panels
 import { store } from './state'
-import type { ToolType, AppMode, BrushType } from './types'
+import type { ToolType, AppMode, StyleName } from './types'
 
 // @app-panels-tools
 const SKETCH_TOOLS: { id: ToolType; label: string; icon: string }[] = [
@@ -40,7 +40,25 @@ function renderToolGrid() {
 // @app-panels-tools-end
 
 // @app-panels-brush
-const BRUSH_TYPES: BrushType[] = ['round', 'square', 'pixel', 'calligraphy', 'chalk', 'charcoal', 'watercolor', 'spray']
+const STYLE_OPTIONS: { id: StyleName; label: string }[] = [
+  { id: 'outline', label: 'Outline' },
+  { id: 'outline-bold', label: 'Bold' },
+  { id: 'outline-fine', label: 'Fine' },
+  { id: 'detail', label: 'Detail' },
+  { id: 'sketch', label: 'Sketch' },
+  { id: 'gesture', label: 'Gesture' },
+  { id: 'underdrawing', label: 'Under' },
+  { id: 'soft', label: 'Soft' },
+  { id: 'wash', label: 'Wash' },
+  { id: 'scumble', label: 'Scumbl' },
+  { id: 'hatching', label: 'Hatch' },
+  { id: 'crosshatch', label: 'XHatch' },
+  { id: 'shading', label: 'Shade' },
+  { id: 'highlight', label: 'Hilite' },
+  { id: 'texture', label: 'Texture' },
+  { id: 'accent', label: 'Accent' },
+  { id: 'construction', label: 'Constr' },
+]
 
 function renderBrushPicker() {
   const container = document.getElementById('brush-picker')
@@ -51,32 +69,22 @@ function renderBrushPicker() {
 
   const typeRow = document.createElement('div')
   typeRow.className = 'brush-type-row'
-  for (const bt of BRUSH_TYPES) {
+  for (const opt of STYLE_OPTIONS) {
     const btn = document.createElement('button')
-    btn.className = 'brush-type-btn' + (draw.brush.type === bt ? ' active' : '')
-    btn.textContent = bt.slice(0, 3)
-    btn.title = bt
+    btn.className = 'brush-type-btn' + (draw.style === opt.id ? ' active' : '')
+    btn.textContent = opt.label.slice(0, 4)
+    btn.title = opt.label
     btn.addEventListener('click', () => {
       const { draw: d } = store.get()
-      store.set({ draw: { ...d, brush: { ...d.brush, type: bt } } })
+      store.set({ draw: { ...d, style: opt.id } })
     })
     typeRow.appendChild(btn)
   }
   container.appendChild(typeRow)
 
-  container.appendChild(createSlider('Size', draw.brush.size, 1, 50, 1, (v) => {
+  container.appendChild(createSlider('Weight', draw.weight, 0.5, 5, 0.5, (v) => {
     const { draw: d } = store.get()
-    store.set({ draw: { ...d, brush: { ...d.brush, size: v } } })
-  }))
-
-  container.appendChild(createSlider('Opacity', draw.brush.opacity, 0, 1, 0.05, (v) => {
-    const { draw: d } = store.get()
-    store.set({ draw: { ...d, brush: { ...d.brush, opacity: v } } })
-  }))
-
-  container.appendChild(createSlider('Hardness', draw.brush.hardness, 0, 1, 0.05, (v) => {
-    const { draw: d } = store.get()
-    store.set({ draw: { ...d, brush: { ...d.brush, hardness: v } } })
+    store.set({ draw: { ...d, weight: v } })
   }))
 }
 
@@ -105,11 +113,11 @@ function createSlider(
 
   const val = document.createElement('span')
   val.className = 'slider-value'
-  val.textContent = value <= 1 && max <= 1 ? Math.round(value * 100) + '%' : String(Math.round(value))
+  val.textContent = value <= 1 && max <= 1 ? Math.round(value * 100) + '%' : String(value)
 
   input.addEventListener('input', () => {
     const v = parseFloat(input.value)
-    val.textContent = v <= 1 && max <= 1 ? Math.round(v * 100) + '%' : String(Math.round(v))
+    val.textContent = v <= 1 && max <= 1 ? Math.round(v * 100) + '%' : String(v)
     onChange(v)
   })
 

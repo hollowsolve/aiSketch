@@ -1,5 +1,5 @@
 // @app-design
-import type { Scene, Component, StrokeNode } from '@engine/types'
+import type { Scene, Component, StrokeNode, SceneNode } from '@engine/types'
 import type { DesignConfig } from './types'
 
 // @app-design-overlays
@@ -113,7 +113,7 @@ function renderDimensions(ctx: CanvasRenderingContext2D, scene: Scene) {
   walkForDimensions(scene.root, ctx)
 }
 
-function walkForDimensions(node: Component | StrokeNode, ctx: CanvasRenderingContext2D) {
+function walkForDimensions(node: SceneNode, ctx: CanvasRenderingContext2D) {
   if (node.type === 'component' && node.designMeta?.area) {
     const bbox = computeBBox(node)
     if (bbox) {
@@ -123,7 +123,7 @@ function walkForDimensions(node: Component | StrokeNode, ctx: CanvasRenderingCon
   }
   if (node.type === 'component') {
     for (const child of node.children) {
-      walkForDimensions(child as Component | StrokeNode, ctx)
+      walkForDimensions(child, ctx)
     }
   }
 }
@@ -188,7 +188,7 @@ function renderAnnotations(ctx: CanvasRenderingContext2D, scene: Scene) {
   walkForAnnotations(scene.root, ctx)
 }
 
-function walkForAnnotations(node: Component | StrokeNode, ctx: CanvasRenderingContext2D) {
+function walkForAnnotations(node: SceneNode, ctx: CanvasRenderingContext2D) {
   if (node.type === 'component' && node.name.startsWith('annotation-')) {
     const bbox = computeBBox(node)
     if (bbox) {
@@ -199,7 +199,7 @@ function walkForAnnotations(node: Component | StrokeNode, ctx: CanvasRenderingCo
   }
   if (node.type === 'component') {
     for (const child of node.children) {
-      walkForAnnotations(child as Component | StrokeNode, ctx)
+      walkForAnnotations(child, ctx)
     }
   }
 }
@@ -210,7 +210,7 @@ function renderZoneLabels(ctx: CanvasRenderingContext2D, scene: Scene, config: D
   walkForZones(scene.root, ctx, config)
 }
 
-function walkForZones(node: Component | StrokeNode, ctx: CanvasRenderingContext2D, config: DesignConfig) {
+function walkForZones(node: SceneNode, ctx: CanvasRenderingContext2D, config: DesignConfig) {
   if (node.type === 'component' && node.designMeta?.roomType) {
     const bbox = computeBBox(node)
     if (bbox) {
@@ -234,7 +234,7 @@ function walkForZones(node: Component | StrokeNode, ctx: CanvasRenderingContext2
   }
   if (node.type === 'component') {
     for (const child of node.children) {
-      walkForZones(child as Component | StrokeNode, ctx, config)
+      walkForZones(child, ctx, config)
     }
   }
 }
@@ -245,17 +245,25 @@ function computeBBox(node: Component): { x: number; y: number; w: number; h: num
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
   let found = false
 
-  function walk(n: Component | StrokeNode) {
+  function walk(n: SceneNode) {
     if (n.type === 'stroke') {
       for (const pt of n.points) {
-        if (pt.x < minX) minX = pt.x
-        if (pt.y < minY) minY = pt.y
-        if (pt.x > maxX) maxX = pt.x
-        if (pt.y > maxY) maxY = pt.y
+        if (pt[0] < minX) minX = pt[0]
+        if (pt[1] < minY) minY = pt[1]
+        if (pt[0] > maxX) maxX = pt[0]
+        if (pt[1] > maxY) maxY = pt[1]
+        found = true
+      }
+    } else if (n.type === 'fill') {
+      for (const pt of n.points) {
+        if (pt[0] < minX) minX = pt[0]
+        if (pt[1] < minY) minY = pt[1]
+        if (pt[0] > maxX) maxX = pt[0]
+        if (pt[1] > maxY) maxY = pt[1]
         found = true
       }
     } else {
-      for (const child of n.children) walk(child as Component | StrokeNode)
+      for (const child of n.children) walk(child)
     }
   }
 

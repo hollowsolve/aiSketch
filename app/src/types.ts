@@ -1,5 +1,5 @@
 // @app-types
-import type { Scene, Component, StrokeNode, Brush, BrushType } from '@engine/types'
+import type { Scene, Component, StrokeNode, StyleName } from '@engine/types'
 
 export type AppMode = 'sketch' | 'design'
 
@@ -26,8 +26,9 @@ export interface SelectionState {
 }
 
 export interface DrawState {
-  brush: Brush
+  style: StyleName
   color: string
+  weight: number
 }
 
 export interface DesignConfig {
@@ -65,5 +66,5 @@ export interface AppState {
   generating: boolean
 }
 
-export type { Scene, Component, StrokeNode, Brush, BrushType }
+export type { Scene, Component, StrokeNode, StyleName }
 // @app-types-end

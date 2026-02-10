@@ -1,58 +1,43 @@
 // @types
 
-export interface StrokePoint {
-  x: number
-  y: number
-  w: number
-  o: number
-  h: number
-}
-
-export type BrushType =
-  | 'round'
-  | 'square'
-  | 'pixel'
-  | 'spray'
-  | 'calligraphy'
-  | 'chalk'
-  | 'charcoal'
-  | 'watercolor'
-
-export interface BrushJitter {
-  size: number
-  opacity: number
-  angle: number
-}
-
-export interface Brush {
-  type: BrushType
-  color?: string
-  size: number
-  opacity: number
-  hardness: number
-  flow: number
-  spacing: number
-  scatter: number
-  jitter: BrushJitter
-}
+export type StyleName =
+  | 'outline'
+  | 'outline-bold'
+  | 'outline-fine'
+  | 'detail'
+  | 'hatching'
+  | 'crosshatch'
+  | 'shading'
+  | 'sketch'
+  | 'gesture'
+  | 'underdrawing'
+  | 'soft'
+  | 'wash'
+  | 'scumble'
+  | 'texture'
+  | 'accent'
+  | 'highlight'
+  | 'construction'
+  | 'dimension'
+  | 'label'
 
 export interface StrokeNode {
   name: string
   type: 'stroke'
   layer: number
-  points: StrokePoint[]
-  brush: Brush
-  tension: number
+  style: StyleName
+  color: string
+  points: [number, number][]
+  weight?: number
 }
 
 export interface FillNode {
   name: string
   type: 'fill'
   layer: number
-  points: { x: number; y: number }[]
   color: string
   opacity: number
-  tension: number
+  points: [number, number][]
 }
 
 export interface Transform {
@@ -85,10 +70,46 @@ export type SceneNode = Component | StrokeNode | FillNode
 export interface Scene {
   name: string
   version: string
-  mode: 'draw' | 'design'
+  mode: 'draw' | 'design' | 'sketch'
   background?: string
   canvas: { width: number; height: number }
   root: Component
+}
+
+export type BrushType =
+  | 'round'
+  | 'square'
+  | 'pixel'
+  | 'spray'
+  | 'calligraphy'
+  | 'chalk'
+  | 'charcoal'
+  | 'watercolor'
+
+export interface BrushJitter {
+  size: number
+  opacity: number
+  angle: number
+}
+
+export interface Brush {
+  type: BrushType
+  color?: string
+  size: number
+  opacity: number
+  hardness: number
+  flow: number
+  spacing: number
+  scatter: number
+  jitter: BrushJitter
+}
+
+export interface StrokePoint {
+  x: number
+  y: number
+  w: number
+  o: number
+  h: number
 }
 
 export interface InterpolatedPoint {
@@ -100,6 +121,11 @@ export interface InterpolatedPoint {
   nx: number
   ny: number
   t: number
+}
+
+export interface ResolvedStyle {
+  brush: Brush
+  tension: number
 }
 
 export interface RenderOptions {

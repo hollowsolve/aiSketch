@@ -2,6 +2,7 @@
 import { store } from './state'
 import { renderScene } from '@engine/renderer'
 import { DEFAULT_RENDER_OPTIONS } from '@engine/types'
+import { resolveStyle } from '@engine/styles'
 import { renderDesignOverlays } from './design'
 
 // @app-viewport-init
@@ -252,10 +253,10 @@ function onPointerUp(e: PointerEvent) {
 // @app-viewport-input-end
 
 // @app-viewport-draw-stroke
-import type { StrokePoint, StrokeNode, Component } from '@engine/types'
+import type { StrokeNode, Component, StyleName } from '@engine/types'
 
 interface ActiveStroke {
-  points: StrokePoint[]
+  points: [number, number][]
   pointerId: number
 }
 
@@ -274,7 +275,7 @@ function startDrawStroke(e: PointerEvent) {
   canvas.setPointerCapture(e.pointerId)
   const pt = screenToScene(e.clientX, e.clientY)
   activeStroke = {
-    points: [{ x: pt.x, y: pt.y, w: 1, o: 1, h: 0.8 }],
+    points: [[pt.x, pt.y]],
     pointerId: e.pointerId,
   }
 }
@@ -283,10 +284,10 @@ function continueDrawStroke(e: PointerEvent) {
   if (!activeStroke) return
   const pt = screenToScene(e.clientX, e.clientY)
   const last = activeStroke.points[activeStroke.points.length - 1]
-  const dx = pt.x - last.x
-  const dy = pt.y - last.y
+  const dx = pt.x - last[0]
+  const dy = pt.y - last[1]
   if (dx * dx + dy * dy < 4) return
-  activeStroke.points.push({ x: pt.x, y: pt.y, w: 1, o: 1, h: 0.8 })
+  activeStroke.points.push([pt.x, pt.y])
   renderPreviewStroke()
 }
 
@@ -309,11 +310,10 @@ function finishDrawStroke() {
     name: id,
     type: 'stroke',
     layer: findCurrentLayer(),
+    style: tool === 'eraser' ? 'outline-bold' : draw.style,
+    color: draw.color,
     points: activeStroke.points,
-    brush: tool === 'eraser'
-      ? { ...draw.brush, type: 'round', size: draw.brush.size * 3 }
-      : { ...draw.brush },
-    tension: 0.5,
+    weight: draw.weight,
   }
 
   const newScene = structuredClone(scene)
@@ -383,17 +383,22 @@ function hitTest(x: number, y: number): StrokeNode | null {
 
 function hitTestNode(node: Component | StrokeNode, x: number, y: number): StrokeNode | null {
   if (node.type === 'stroke') {
+    const resolved = resolveStyle(node)
+    const hitRadius = resolved.brush.size * 3
     for (const pt of node.points) {
-      const dx = pt.x - x
-      const dy = pt.y - y
-      if (dx * dx + dy * dy < (node.brush.size * 3) ** 2) return node
+      const dx = pt[0] - x
+      const dy = pt[1] - y
+      if (dx * dx + dy * dy < hitRadius * hitRadius) return node
     }
     return null
   }
+  if (node.type === 'fill') return null
   for (let i = node.children.length - 1; i >= 0; i--) {
     const child = node.children[i]
-    const hit = hitTestNode(child as Component | StrokeNode, x, y)
-    if (hit) return hit
+    if (child.type === 'component' || child.type === 'stroke') {
+      const hit = hitTestNode(child, x, y)
+      if (hit) return hit
+    }
   }
   return null
 }
@@ -405,15 +410,18 @@ function collectHitsInBox(
 ) {
   if (node.type === 'stroke') {
     for (const pt of node.points) {
-      if (pt.x >= box.x && pt.x <= box.x + box.w && pt.y >= box.y && pt.y <= box.y + box.h) {
+      if (pt[0] >= box.x && pt[0] <= box.x + box.w && pt[1] >= box.y && pt[1] <= box.y + box.h) {
         out.add(node.name)
         break
       }
     }
     return
   }
+  if (node.type === 'fill') return
   for (const child of node.children) {
-    collectHitsInBox(child as Component | StrokeNode, box, out)
+    if (child.type === 'component' || child.type === 'stroke') {
+      collectHitsInBox(child, box, out)
+    }
   }
 }
 // @app-viewport-selection-end
@@ -461,12 +469,12 @@ function finishLineTool() {
     name: id,
     type: 'stroke',
     layer: findCurrentLayer(),
+    style: 'construction' as StyleName,
+    color: draw.color,
     points: [
-      { x: lineDrag.startX, y: lineDrag.startY, w: 1, o: 1, h: 1 },
-      { x: lineDrag.endX, y: lineDrag.endY, w: 1, o: 1, h: 1 },
+      [lineDrag.startX, lineDrag.startY],
+      [lineDrag.endX, lineDrag.endY],
     ],
-    brush: { ...draw.brush, type: 'round', hardness: 1, jitter: { size: 0, opacity: 0, angle: 0 } },
-    tension: 0,
   }
 
   const newScene = structuredClone(scene)
@@ -521,17 +529,17 @@ function finishRectTool() {
 
   const id = 'rect-' + Date.now()
   const layer = findCurrentLayer()
-  const brush = { ...draw.brush, type: 'round' as const, hardness: 1, jitter: { size: 0, opacity: 0, angle: 0 } }
+  const style: StyleName = 'construction'
 
   const rectComp: Component = {
     name: id,
     type: 'component',
     transform: { origin: [0, 0], position: [0, 0], scale: [1, 1], rotation: 0 },
     children: [
-      { name: id + '-top', type: 'stroke', layer, points: [{ x: x1, y: y1, w: 1, o: 1, h: 1 }, { x: x2, y: y1, w: 1, o: 1, h: 1 }], brush, tension: 0 },
-      { name: id + '-right', type: 'stroke', layer, points: [{ x: x2, y: y1, w: 1, o: 1, h: 1 }, { x: x2, y: y2, w: 1, o: 1, h: 1 }], brush, tension: 0 },
-      { name: id + '-bottom', type: 'stroke', layer, points: [{ x: x2, y: y2, w: 1, o: 1, h: 1 }, { x: x1, y: y2, w: 1, o: 1, h: 1 }], brush, tension: 0 },
-      { name: id + '-left', type: 'stroke', layer, points: [{ x: x1, y: y2, w: 1, o: 1, h: 1 }, { x: x1, y: y1, w: 1, o: 1, h: 1 }], brush, tension: 0 },
+      { name: id + '-top', type: 'stroke', layer, style, color: draw.color, points: [[x1, y1], [x2, y1]] },
+      { name: id + '-right', type: 'stroke', layer, style, color: draw.color, points: [[x2, y1], [x2, y2]] },
+      { name: id + '-bottom', type: 'stroke', layer, style, color: draw.color, points: [[x2, y2], [x1, y2]] },
+      { name: id + '-left', type: 'stroke', layer, style, color: draw.color, points: [[x1, y2], [x1, y1]] },
     ],
   }
 

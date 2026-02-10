@@ -8,7 +8,7 @@
 
 ## Project Context
 
-aiSketch is an API that converts natural language prompts into fully editable, semantically structured, hand-drawn-style vector scenes. It outputs hierarchical scene graphs (not images) — trees of named components containing brush-configured vector strokes. Two modes: Draw (expressive/artistic) and Design (structural/spatial). Client-side rendering engine (Canvas 2D, ~8KB minified). Generation API via Cloudflare Workers calling Anthropic Claude. Part of the Volcanic/Architectonic product suite.
+aiSketch is an API that converts natural language prompts into fully editable, semantically structured, hand-drawn-style vector scenes. It outputs hierarchical scene graphs (not images) — trees of named components containing style-tagged vector strokes and fills with compact [x,y] point tuples. The LLM picks from 14 named style presets (outline, detail, soft, construction, etc.) and the engine resolves them to full brush configs at render time. Two modes: Draw (expressive/artistic) and Design (structural/spatial). Client-side rendering engine (Canvas 2D, ~11KB minified). Generation API via Cloudflare Workers calling Anthropic Claude. Part of the Volcanic/Architectonic product suite.
 
 Source: `/Users/noahedery/Desktop/aiSketch/`
 

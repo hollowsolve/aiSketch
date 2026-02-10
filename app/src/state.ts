@@ -1,6 +1,5 @@
 // @app-state
 import type { AppState, AppMode, ToolType, ViewportState, DesignConfig, LayerInfo, Scene } from './types'
-import { DEFAULT_BRUSH } from '@engine/types'
 
 // @app-state-defaults
 const DEFAULT_DESIGN_CONFIG: DesignConfig = {
@@ -21,7 +20,7 @@ function createEmptyScene(mode: AppMode): Scene {
   return {
     name: 'Untitled',
     version: '1.0',
-    mode: mode === 'sketch' ? 'draw' : 'design',
+    mode: mode === 'design' ? 'design' : mode === 'sketch' ? 'sketch' : 'draw',
     canvas: { width: 1920, height: 1080 },
     root: {
       name: 'root',
@@ -51,7 +50,7 @@ class Store {
       viewport: { panX: 0, panY: 0, zoom: 1 },
       scene: createEmptyScene('sketch'),
       selection: { selectedIds: new Set(), selectionBox: null },
-      draw: { brush: { ...DEFAULT_BRUSH }, color: '#1a1a1a' },
+      draw: { style: 'outline', color: '#1a1a1a', weight: 1 },
       design: { ...DEFAULT_DESIGN_CONFIG },
       layers: [...DEFAULT_LAYERS],
       undoStack: [],
