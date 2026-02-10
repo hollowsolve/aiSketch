@@ -7,7 +7,7 @@ Grep for `@tags` to find implementation details.
 ---
 
 @types
-Scene graph type definitions: Scene, Component, StrokeNode, Brush, StrokePoint, InterpolatedPoint, RenderOptions
+Scene graph type definitions: Scene (+ background field), Component, StrokeNode, FillNode, Brush (+ color field), StrokePoint, InterpolatedPoint, RenderOptions
 File: src/engine/types.ts
 
 ---
@@ -41,21 +41,21 @@ Sub-tags:
 ---
 
 @renderer
-Canvas 2D scene graph renderer. Walks tree, applies transforms, draws strokes.
+Canvas 2D scene graph renderer. Walks tree, applies transforms, draws strokes and fills. Supports scene background color.
 File: src/engine/renderer.ts
 Sub-tags:
-  @renderer-collect-strokes — collectStrokes(), flattens tree to sorted stroke list
-  @renderer-draw — renderScene(), renderSingleStroke()
+  @renderer-collect-elements — collectStrokes(), flattens tree to sorted FlatElement list (strokes + fills)
+  @renderer-draw — renderScene() (background + elements), renderSingleStroke(), renderSingleFill()
   @renderer-utils — hashString()
 
 ---
 
 @animator
-Layer-ordered animation sequencer. Draws strokes progressively with inter-layer pauses.
+Layer-ordered animation sequencer. Draws strokes progressively and fills with fade-in, with inter-layer pauses.
 File: src/engine/animator.ts
 Sub-tags:
-  @animator-partial — renderPartialStroke(), progressive stroke reveal
-  animateScene() — returns AnimationHandle with cancel/pause/resume
+  @animator-partial — renderPartialStroke(), renderPartialFill(), progressive reveal
+  animateScene() — returns AnimationHandle with cancel/pause/resume. Handles background color.
 
 ---
 
@@ -74,17 +74,17 @@ File: src/index.ts
 @worker-entry
 Cloudflare Worker entry. Routes /v1/auth/*, /v1/sketch, /v1/health, and static site assets.
 File: worker/index.ts
-Env: ANTHROPIC_API_KEY, KV_SESSIONS, ENVIRONMENT, __STATIC_CONTENT
+Env: ANTHROPIC_API_KEY, RESEND_API_KEY, KV_SESSIONS, ENVIRONMENT, __STATIC_CONTENT
 Sub-tags:
   @handle-static-assets — serves site/dist via @cloudflare/kv-asset-handler, SPA fallback to index.html
 
 ---
 
 @handle-sketch
-POST /v1/sketch handler. Validates request, authenticates API key, rate limits, deducts credits, calls Claude, returns scene graph.
+POST /v1/sketch handler. Validates request, authenticates API key or session, rate limits, deducts credits, calls Claude, returns scene graph.
 File: worker/routes/sketch.ts
 Sub-tags:
-  @handle-sketch-auth — API key validation via KV
+  @handle-sketch-auth — API key validation via KV, session cookie fallback for dashboard
   @handle-sketch-ratelimit — 30 req/min per key
   @handle-sketch-main — request validation, mode dispatch
   @handle-sketch-batch — non-streaming Claude call, JSON response
@@ -202,22 +202,53 @@ Sub-tags:
   @handle-auth-me — GET /v1/auth/me, returns user + API keys
   @handle-auth-apikeys — POST /v1/auth/keys (create), /keys/revoke, /keys/credits (transfer from account)
   @handle-auth-credits — POST /v1/auth/credits, add credits to account
-  @handle-auth-deduct — deductCredit(), checks key credits then user credits, used by /v1/sketch
+  @handle-auth-deduct — deductCredit(), deductAccountCredit(), checks key credits then user credits, used by /v1/sketch
   @handle-auth-router — handleAuth() route dispatcher
 
 ---
 
 @site-auth
-Auth UI: login, signup, dashboard overlay pages on the landing site.
+Auth UI: login flow, integrates with full-page dashboard.
 File: site/src/auth.ts
 Sub-tags:
   @site-auth-state — AuthUser, ApiKey interfaces, currentUser state
   @site-auth-api — api() fetch wrapper, checkSession()
-  @site-auth-router — initAuth(), hash-based routing, updateNavButton()
+  @site-auth-router — initAuth(), hash-based routing, updateNavButton(), delegates to dashboard
   @site-auth-overlay — getOverlay(), hideAuthOverlay()
-  @site-auth-login — renderLogin() form
-  @site-auth-signup — renderSignup() form
-  @site-auth-dashboard — renderDashboard(): credits card, API keys list, create/revoke/fund keys
+  @site-auth-email-step — renderEmailStep() email form
+  @site-auth-code-step — renderCodeStep() verification code form
+  @site-auth-dashboard — renderDashboard(): legacy overlay (now redirects to full-page dashboard)
+
+---
+
+@site-dashboard
+Full-page dashboard: canvas rendering, prompt-to-scene generation, scene history, API key management.
+File: site/src/dashboard.ts
+Sub-tags:
+  @site-dashboard-types — SavedScene, DashboardCallbacks interfaces
+  @site-dashboard-state — user, apiKeys, scenes, mode, generating state
+  @site-dashboard-init — showDashboard(), hideDashboard() — page takeover
+  @site-dashboard-render — render(), renderHistory(), renderEmptyState(), renderKeysPanel()
+  @site-dashboard-canvas — initCanvas(), scaleCanvas(), renderSceneOnCanvas() with animation
+  @site-dashboard-generate — handleGenerate() calls /v1/sketch with session auth, saves to history
+  @site-dashboard-history — saveToHistory(), loadScene(), deleteScene(), persistHistory() (localStorage)
+  @site-dashboard-export — exportPNG(), exportJSON()
+  @site-dashboard-events — bindEvents(), bindHistoryEvents(), bindKeysEvents()
+  @site-dashboard-utils — escapeHtml(), truncate(), timeAgo()
+
+---
+
+@site-dashboard-css
+Dashboard styles. Full-viewport grid layout (sidebar + main), dark theme.
+File: site/src/dashboard.css
+Sub-tags:
+  @site-dashboard-css-layout — CSS grid: header, sidebar, main
+  @site-dashboard-css-header — top bar: logo, credits badge, buttons
+  @site-dashboard-css-sidebar — scene history list, new scene button
+  @site-dashboard-css-main — canvas area, empty state, progress bar
+  @site-dashboard-css-prompt — prompt input bar, mode toggle, send button
+  @site-dashboard-css-keys — API keys modal overlay
+  @site-dashboard-css-responsive — mobile: hide sidebar, stack prompt bar
 
 ---
 

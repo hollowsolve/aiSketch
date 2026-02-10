@@ -10,14 +10,16 @@ Pending work. Check off when done. Add context as you discover it.
 
 - [x] Project setup (TypeScript, esbuild, wrangler) — Session 001
 - [x] Knowledge architecture (BRAIN, PROJECT_INTENT, PROJECT_SPECIFICS, BACKLOG, PROCEDURES) — Session 001
-- [ ] Deploy worker to Cloudflare (needs ANTHROPIC_API_KEY secret)
+- [x] Deploy worker to Cloudflare — Session 001, updated Session 004
 - [x] Set up API key provisioning system — Session 003
 - [x] Auth system (passwordless email codes via Resend, sessions, credits, API key CRUD) — Session 003
 - [x] Dashboard UI (account credits, API keys, create/revoke/fund) — Session 003
 - [x] Credit deduction on /v1/sketch (key credits → account credits fallback) — Session 003
 - [ ] Set up domain routing (e.g., api.aisketch.dev or aisketch.volcanic.dev)
-- [ ] Set RESEND_API_KEY secret on Cloudflare Worker (same Resend account as volcanic.dev)
-- [ ] Deploy + test full auth flow (email code → dashboard → API keys)
+- [x] Set RESEND_API_KEY secret on Cloudflare Worker — Session 004
+- [x] Deploy + test full auth flow (email code → dashboard → API keys) — Session 004
+- [x] Full-page dashboard with prompt-to-scene generation, canvas rendering, scene history — Session 004
+- [x] Session-based auth for /v1/sketch (dashboard users generate without API key) — Session 004
 - [ ] Payment integration (Stripe) for credit purchases
 - [x] Landing page / website at aisketch.app — Session 002
 - [x] Static site serving via @cloudflare/kv-asset-handler — Session 002
@@ -25,18 +27,18 @@ Pending work. Check off when done. Add context as you discover it.
 
 ## Rendering Engine
 
-- [x] types.ts — Scene graph type definitions — Session 001
+- [x] types.ts — Scene graph type definitions — Session 001, FillNode + background added Session 004
 - [x] spline.ts — Catmull-Rom interpolation — Session 001
-- [x] brush.ts — Brush stamp system (8 types) — Session 001
+- [x] brush.ts — Brush stamp system (8 types) + color support — Session 001, color Session 004
 - [x] wobble.ts — Hand tremor, taper, overshoot — Session 001
-- [x] renderer.ts — Canvas 2D scene graph renderer — Session 001
-- [x] animator.ts — Layer-ordered animation sequencer — Session 001
+- [x] renderer.ts — Canvas 2D scene graph renderer + fill rendering + background — Session 001, fills Session 004
+- [x] animator.ts — Layer-ordered animation sequencer + fill fade-in — Session 001, fills Session 004
 
 ## Generation API
 
 - [x] worker/index.ts — Worker entry, routing — Session 001
 - [x] worker/routes/sketch.ts — /v1/sketch handler + LLM prompt + SSE — Session 001
-- [ ] Tune system prompt for higher quality scene graphs
+- [x] Tune system prompt for higher quality scene graphs — Session 004 (fills + strokes workflow, color, background)
 - [ ] Add retry logic for malformed LLM JSON responses
 - [ ] Token usage tracking / cost estimation per generation
 

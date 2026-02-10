@@ -77,7 +77,10 @@ async function getSession(env: Env, request: Request): Promise<Session | null> {
 
 async function getOrCreateUser(email: string, env: Env): Promise<User> {
   const stored = await env.KV_SESSIONS.get(`user:${email}`, { type: 'json' }) as User | null
-  if (stored) return stored
+  if (stored) {
+    if (stored.credits == null) stored.credits = 0
+    return stored
+  }
 
   const user: User = {
     email,
@@ -89,7 +92,9 @@ async function getOrCreateUser(email: string, env: Env): Promise<User> {
 }
 
 async function getUser(env: Env, email: string): Promise<User | null> {
-  return await env.KV_SESSIONS.get(`user:${email}`, { type: 'json' }) as User | null
+  const user = await env.KV_SESSIONS.get(`user:${email}`, { type: 'json' }) as User | null
+  if (user && user.credits == null) user.credits = 0
+  return user
 }
 // @handle-auth-utils-end
 
@@ -419,6 +424,18 @@ async function handleAddCredits(request: Request, env: Env): Promise<Response> {
 // @handle-auth-credits-end
 
 // @handle-auth-deduct
+export async function deductAccountCredit(env: Env, email: string): Promise<{ ok: boolean; error?: string }> {
+  const user = await env.KV_SESSIONS.get(`user:${email}`, { type: 'json' }) as User | null
+  if (!user || user.credits <= 0) {
+    return { ok: false, error: 'No credits remaining' }
+  }
+  user.credits -= 1
+  await env.KV_SESSIONS.put(`user:${email}`, JSON.stringify(user))
+  return { ok: true }
+}
+
+export { getSession }
+
 export async function deductCredit(env: Env, apiKey: string): Promise<{ ok: boolean; error?: string }> {
   const record = await env.KV_SESSIONS.get(`apikey:${apiKey}`, { type: 'json' }) as ApiKeyRecord | null
   if (!record) return { ok: false, error: 'Invalid API key' }

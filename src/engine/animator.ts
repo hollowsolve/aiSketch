@@ -1,6 +1,6 @@
 // @animator
-import type { Scene, RenderOptions } from './types'
-import { collectStrokes, renderSingleStroke, type FlatStroke } from './renderer'
+import type { Scene, StrokeNode, FillNode, RenderOptions } from './types'
+import { collectStrokes, renderSingleStroke, renderSingleFill, type FlatElement } from './renderer'
 
 export interface AnimationOptions extends RenderOptions {
   strokeDuration: number
@@ -25,10 +25,10 @@ export function animateScene(
   scene: Scene,
   opts: AnimationOptions
 ): AnimationHandle {
-  const strokes = collectStrokes(scene)
+  const elements = collectStrokes(scene)
   let cancelled = false
   let paused = false
-  let currentStroke = 0
+  let currentIdx = 0
   let strokeStart = 0
   let layerPausing = false
   let pauseUntil = 0
@@ -37,7 +37,12 @@ export function animateScene(
   const w = scene.canvas.width
   const h = scene.canvas.height
 
-  ctx.clearRect(0, 0, w, h)
+  if (scene.background) {
+    ctx.fillStyle = scene.background
+    ctx.fillRect(0, 0, w, h)
+  } else {
+    ctx.clearRect(0, 0, w, h)
+  }
 
   const bufferCanvas = new OffscreenCanvas(
     ctx.canvas.width,
@@ -46,6 +51,11 @@ export function animateScene(
   const bufferCtx = bufferCanvas.getContext('2d')! as unknown as CanvasRenderingContext2D
   const dpr = ctx.canvas.width / w
   if (dpr !== 1) bufferCtx.scale(dpr, dpr)
+
+  if (scene.background) {
+    bufferCtx.fillStyle = scene.background
+    bufferCtx.fillRect(0, 0, w, h)
+  }
 
   function tick(now: number) {
     if (cancelled) return
@@ -63,7 +73,7 @@ export function animateScene(
       }
     }
 
-    if (currentStroke >= strokes.length) {
+    if (currentIdx >= elements.length) {
       opts.onProgress?.(1)
       opts.onComplete?.()
       return
@@ -71,8 +81,11 @@ export function animateScene(
 
     if (strokeStart === 0) strokeStart = now
 
+    const current = elements[currentIdx]
+    const isFill = current.node.type === 'fill'
+    const duration = isFill ? opts.strokeDuration * 0.3 : opts.strokeDuration
     const elapsed = now - strokeStart
-    const progress = Math.min(1, elapsed / opts.strokeDuration)
+    const progress = Math.min(1, elapsed / duration)
 
     ctx.clearRect(0, 0, w, h)
     ctx.save()
@@ -80,20 +93,27 @@ export function animateScene(
     ctx.drawImage(bufferCanvas, 0, 0)
     ctx.restore()
 
-    const current = strokes[currentStroke]
-    renderPartialStroke(ctx, current, progress, opts)
+    if (isFill) {
+      renderPartialFill(ctx, current as FlatElement & { node: FillNode }, progress, opts)
+    } else {
+      renderPartialStroke(ctx, current as FlatElement & { node: StrokeNode }, progress, opts)
+    }
 
-    const totalProgress = (currentStroke + progress) / strokes.length
+    const totalProgress = (currentIdx + progress) / elements.length
     opts.onProgress?.(totalProgress)
 
     if (progress >= 1) {
-      renderSingleStroke(bufferCtx, current, opts)
-      currentStroke++
+      if (isFill) {
+        renderSingleFill(bufferCtx, current as FlatElement & { node: FillNode }, opts)
+      } else {
+        renderSingleStroke(bufferCtx, current as FlatElement & { node: StrokeNode }, opts)
+      }
+      currentIdx++
       strokeStart = 0
 
       if (
-        currentStroke < strokes.length &&
-        strokes[currentStroke].node.layer !== current.node.layer
+        currentIdx < elements.length &&
+        elements[currentIdx].node.layer !== current.node.layer
       ) {
         layerPausing = true
         pauseUntil = now + opts.layerPause
@@ -115,7 +135,7 @@ export function animateScene(
 // @animator-partial
 function renderPartialStroke(
   ctx: CanvasRenderingContext2D,
-  flat: FlatStroke,
+  flat: FlatElement & { node: StrokeNode },
   progress: number,
   opts: RenderOptions
 ) {
@@ -139,11 +159,21 @@ function renderPartialStroke(
   const partialPoints = node.points.slice(0, visibleCount)
 
   const partialNode = { ...node, points: partialPoints }
-  const partialFlat: FlatStroke = { node: partialNode, transforms: [], depth: flat.depth }
+  const partialFlat = { node: partialNode, transforms: [] as typeof transforms, depth: flat.depth }
 
   ctx.restore()
 
   renderSingleStroke(ctx, partialFlat, opts)
+}
+
+function renderPartialFill(
+  ctx: CanvasRenderingContext2D,
+  flat: FlatElement & { node: FillNode },
+  progress: number,
+  opts: RenderOptions
+) {
+  const fadedNode = { ...flat.node, opacity: flat.node.opacity * progress }
+  renderSingleFill(ctx, { ...flat, node: fadedNode }, opts)
 }
 // @animator-partial-end
 // @animator-end

@@ -26,6 +26,7 @@ export interface BrushJitter {
 
 export interface Brush {
   type: BrushType
+  color?: string
   size: number
   opacity: number
   hardness: number
@@ -41,6 +42,16 @@ export interface StrokeNode {
   layer: number
   points: StrokePoint[]
   brush: Brush
+  tension: number
+}
+
+export interface FillNode {
+  name: string
+  type: 'fill'
+  layer: number
+  points: { x: number; y: number }[]
+  color: string
+  opacity: number
   tension: number
 }
 
@@ -69,12 +80,13 @@ export interface Component {
   children: SceneNode[]
 }
 
-export type SceneNode = Component | StrokeNode
+export type SceneNode = Component | StrokeNode | FillNode
 
 export interface Scene {
   name: string
   version: string
   mode: 'draw' | 'design'
+  background?: string
   canvas: { width: number; height: number }
   root: Component
 }

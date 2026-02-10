@@ -75,7 +75,8 @@ aiSketch/
 ├── worker/
 │   ├── index.ts            — Worker entry, routing
 │   └── routes/
-│       └── sketch.ts       — /v1/sketch handler + LLM prompt
+│       ├── auth.ts          — Auth: passwordless email, sessions, API keys, credits
+│       └── sketch.ts        — /v1/sketch handler + LLM prompt
 ├── app/
 │   ├── src/
 │   │   ├── main.ts          — App entry point

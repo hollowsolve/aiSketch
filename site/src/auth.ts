@@ -1,5 +1,6 @@
 // @site-auth
 import './auth.css'
+import { showDashboard, hideDashboard } from './dashboard'
 
 // @site-auth-state
 interface AuthUser {
@@ -60,6 +61,7 @@ export function initAuth() {
       showAuthPage(h)
     } else {
       hideAuthOverlay()
+      hideDashboard()
     }
   })
 }
@@ -79,8 +81,25 @@ function updateNavButton(loggedIn: boolean) {
 function showAuthPage(page: 'login' | 'signup' | 'dashboard') {
   if (page === 'dashboard') {
     checkSession().then((ok) => {
-      if (ok) renderDashboard()
-      else renderEmailStep()
+      if (ok) {
+        hideAuthOverlay()
+        showDashboard(currentUser!, apiKeys, {
+          onLogout: async () => {
+            await api('/v1/auth/logout', { method: 'POST' })
+            currentUser = null
+            apiKeys = []
+            updateNavButton(false)
+            window.location.hash = ''
+          },
+          onRefreshSession: async () => {
+            const ok = await checkSession()
+            if (!ok) return null
+            return { user: currentUser!, apiKeys }
+          },
+        })
+      } else {
+        renderEmailStep()
+      }
     })
     return
   }
@@ -257,7 +276,7 @@ function renderDashboard() {
         <span class="dash-key-prefix">${k.prefix}</span>
       </div>
       <div class="dash-key-credits">
-        <span class="dash-key-credit-count">${k.credits}</span> credits
+        <span class="dash-key-credit-count">${k.credits ?? 0}</span> credits
         <button class="dash-key-action" data-action="fund" data-key="${k.id}">+ Add</button>
         <button class="dash-key-action danger" data-action="revoke" data-key="${k.id}">Revoke</button>
       </div>
@@ -277,7 +296,7 @@ function renderDashboard() {
 
       <div class="dash-credits-card">
         <div class="dash-credits-label">Account Credits</div>
-        <div class="dash-credits-value" id="dash-credits">${currentUser.credits}</div>
+        <div class="dash-credits-value" id="dash-credits">${currentUser.credits ?? 0}</div>
         <div class="dash-credits-actions">
           <button class="btn-primary dash-buy-btn" data-amount="100">Buy 100</button>
           <button class="btn-primary dash-buy-btn" data-amount="500">Buy 500</button>

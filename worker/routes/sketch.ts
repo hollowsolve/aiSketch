@@ -1,6 +1,6 @@
 // @handle-sketch
 import type { Env } from '../index'
-import { deductCredit } from './auth'
+import { deductCredit, getSession, deductAccountCredit } from './auth'
 
 interface SketchRequest {
   prompt: string
@@ -12,24 +12,29 @@ interface SketchRequest {
 }
 
 // @handle-sketch-auth
-async function authenticateRequest(request: Request, env: Env): Promise<{ valid: boolean; keyId: string; error?: string }> {
+async function authenticateRequest(request: Request, env: Env): Promise<{ valid: boolean; keyId: string; email?: string; viaSession?: boolean; error?: string }> {
   const apiKey = request.headers.get('X-API-Key') || request.headers.get('Authorization')?.replace('Bearer ', '')
 
-  if (!apiKey) {
-    return { valid: false, keyId: '', error: 'API key required. Pass via X-API-Key header or Authorization: Bearer <key>' }
+  if (apiKey) {
+    const keyData = await env.KV_SESSIONS.get(`apikey:${apiKey}`)
+    if (!keyData) {
+      return { valid: false, keyId: '', error: 'Invalid API key' }
+    }
+
+    const key = JSON.parse(keyData)
+    if (key.revoked) {
+      return { valid: false, keyId: '', error: 'API key has been revoked' }
+    }
+
+    return { valid: true, keyId: key.id || apiKey.slice(0, 8) }
   }
 
-  const keyData = await env.KV_SESSIONS.get(`apikey:${apiKey}`)
-  if (!keyData) {
-    return { valid: false, keyId: '', error: 'Invalid API key' }
+  const session = await getSession(env, request)
+  if (session) {
+    return { valid: true, keyId: `session:${session.email}`, email: session.email, viaSession: true }
   }
 
-  const key = JSON.parse(keyData)
-  if (key.revoked) {
-    return { valid: false, keyId: '', error: 'API key has been revoked' }
-  }
-
-  return { valid: true, keyId: key.id || apiKey.slice(0, 8) }
+  return { valid: false, keyId: '', error: 'API key required. Pass via X-API-Key header or Authorization: Bearer <key>' }
 }
 // @handle-sketch-auth-end
 
@@ -66,8 +71,13 @@ export async function handleSketch(request: Request, env: Env, ctx: ExecutionCon
     return json({ error: 'Rate limit exceeded. Max 30 requests per minute.' }, 429)
   }
 
-  const apiKey = request.headers.get('X-API-Key') || request.headers.get('Authorization')?.replace('Bearer ', '') || ''
-  const creditResult = await deductCredit(env, apiKey)
+  let creditResult: { ok: boolean; error?: string }
+  if (auth.viaSession && auth.email) {
+    creditResult = await deductAccountCredit(env, auth.email)
+  } else {
+    const apiKey = request.headers.get('X-API-Key') || request.headers.get('Authorization')?.replace('Bearer ', '') || ''
+    creditResult = await deductCredit(env, apiKey)
+  }
   if (!creditResult.ok) {
     return json({ error: creditResult.error || 'No credits remaining' }, 402)
   }
@@ -263,103 +273,88 @@ function buildSystemPrompt(
 
   const modeInstructions = mode === 'draw' ? DRAW_INSTRUCTIONS : DESIGN_INSTRUCTIONS
 
-  return `You are aiSketch, a system that converts natural language prompts into fully editable, semantically structured, hand-drawn-style vector scenes.
+  return `You are aiSketch, a masterful illustrator. Convert prompts into hand-drawn vector scenes as JSON.
 
-You output a JSON scene graph — a hierarchical tree of named components, each containing child components or leaf strokes with brush configurations.
+The engine has TWO primitives: **fills** (closed colored shapes) and **strokes** (brush paths). Use both.
 
-## Canvas
-Width: ${canvas.width}, Height: ${canvas.height}
-
-## Render parameters
-Fidelity: ${f} (0=loose sketch, 1=precise illustration)
-Wobble: ${w} (0=steady, 1=very shaky hand)
-
+## Canvas: ${canvas.width}x${canvas.height}
+## Fidelity: ${f} | Wobble: ${w}
 ## Mode: ${mode}
 ${modeInstructions}
 
-## Output format
-Output ONLY valid JSON. No markdown, no explanation, no code fences. The JSON must be a scene graph with this structure:
+## Output: ONLY valid JSON, no markdown/code fences.
 
 {
-  "name": "scene",
+  "name": "scene name",
+  "background": "#faf8f4",
   "root": {
-    "name": "root",
-    "type": "component",
-    "transform": { "origin": [${canvas.width / 2}, ${canvas.height / 2}], "position": [0, 0], "scale": [1, 1], "rotation": 0 },
-    "children": [
-      {
-        "name": "example_group",
-        "type": "component",
-        "transform": { "origin": [x, y], "position": [0, 0], "scale": [1, 1], "rotation": 0 },
-        "children": [
-          {
-            "name": "example_stroke",
-            "type": "stroke",
-            "layer": 0,
-            "points": [
-              { "x": 100, "y": 200, "w": 1.0, "o": 0.9, "h": 0.7 },
-              { "x": 150, "y": 180, "w": 1.1, "o": 0.9, "h": 0.7 }
-            ],
-            "brush": {
-              "type": "pencil_type",
-              "size": 3,
-              "opacity": 0.85,
-              "hardness": 0.6,
-              "flow": 0.9,
-              "spacing": 0.12,
-              "scatter": 0.0,
-              "jitter": { "size": 0.05, "opacity": 0.02, "angle": 0.0 }
-            },
-            "tension": 0.5
-          }
-        ]
-      }
-    ]
+    "name": "root", "type": "component",
+    "transform": { "origin": [0,0], "position": [0,0], "scale": [1,1], "rotation": 0 },
+    "children": []
   }
 }
 
-## Naming conventions
-- Use semantic, hierarchical names: "face/eyes/left/iris" not "stroke_47"
-- Components group related elements: a face contains eyes, nose, mouth
-- Leaf strokes are the actual drawn paths
-- Names use forward slash in the hierarchy, dots for variants: "tree.left/trunk"
+"background" sets the canvas color. Use warm off-white (#faf8f4, #f5f0e8) for paper feel, light blue (#e8eef5) for sky, dark (#1a1a2e) for night scenes.
 
-## Layers
-- Layer 0: Background washes, fills
-- Layer 1: Construction lines, major shapes
-- Layer 2: Detail strokes, features
-- Layer 3: Shading, hatching, annotations
+## Fill node (colored shape):
+{ "name": "sky", "type": "fill", "layer": 0, "tension": 0.4, "color": "#87CEEB", "opacity": 0.6,
+  "points": [ {"x":0,"y":0}, {"x":${canvas.width},"y":0}, {"x":${canvas.width},"y":${Math.round(canvas.height * 0.5)}}, {"x":0,"y":${Math.round(canvas.height * 0.55)}} ] }
 
-## Brush types
-Available: round, square, pixel, spray, calligraphy, chalk, charcoal, watercolor
+Fill points define a closed shape (auto-closed). Use 4-12 points. The renderer splines them into smooth curves with slight wobble for hand-drawn edges. Fills are the PRIMARY way to create colored regions.
 
-## Stroke points
-Each point has:
-- x, y: position in canvas coordinates
-- w: width multiplier (0.1-3.0, simulates pen pressure)
-- o: opacity at this point (0-1)
-- h: hardness at this point (0=soft edge, 1=hard edge)
+## Stroke node (brush path):
+{ "name": "trunk-outline", "type": "stroke", "layer": 2, "tension": 0.3,
+  "brush": { "type": "round", "color": "#3d2b1f", "size": 2.5, "opacity": 0.8, "hardness": 0.7, "flow": 1, "spacing": 0.15, "scatter": 0, "jitter": {"size":0.03,"opacity":0.02,"angle":0} },
+  "points": [ {"x":200,"y":350,"w":1.2,"o":0.9,"h":0.8}, {"x":198,"y":280,"w":0.9,"o":0.85,"h":0.8}, {"x":195,"y":220,"w":0.6,"o":0.7,"h":0.8} ] }
 
-Use 3-8 control points per stroke. The renderer interpolates smooth curves between them.
+Strokes draw along a path with brush stamps. Use for outlines, details, hatching, texture. 3-8 control points.
+
+## Component (groups elements):
+{ "name": "tree", "type": "component", "transform": {"origin":[0,0],"position":[0,0],"scale":[1,1],"rotation":0}, "children": [ ...fills and strokes... ] }
+
+## Artist workflow — ALWAYS follow this order:
+1. Set "background" color on the scene
+2. Layer 0: Large fills for sky, ground, water — cover the whole canvas
+3. Layer 1: Object fills — colored shapes for every major object (buildings, trees, mountains, people)
+4. Layer 2: Outline strokes — contour lines on top of fills using darker color variants
+5. Layer 3: Detail strokes — windows, eyes, bark texture, small features
+6. Layer 4: Shading/texture — hatching strokes, shadow fills, highlights
+
+## Brush types for strokes
+round: general purpose lines and outlines
+calligraphy: elegant varying-width lines
+charcoal: bold rough marks
+chalk: grainy texture strokes
+watercolor: soft diffuse marks
+spray: speckled texture
+
+## Color rules
+- Pick 4-6 base colors, use light/dark variants of each
+- Fill colors: the actual color of the object (green for grass, brown for wood, blue for sky)
+- Stroke outline colors: darker shade of the fill color (NOT black unless it's ink style)
+- Shading: semi-transparent dark fills or hatching strokes
+- ALWAYS include "color" on every brush and fill
+
+## Composition
+- USE THE FULL CANVAS. Fills should extend to edges.
+- Aim for 10-25 fills + 20-50 strokes for a rich scene
+- Every visible object needs at minimum: 1 fill (its shape/color) + 1-2 outline strokes
+- Overlap fills for depth — farther objects behind nearer ones
 
 ## Critical rules
-1. Every element must be named semantically
-2. Group related strokes into components with meaningful names
-3. Use appropriate brush types for each element (charcoal for bold marks, pencil for detail, watercolor for washes)
-4. Assign correct layers (background first, then structure, detail, shading)
-5. Keep stroke point coordinates within the canvas bounds
-6. Vary pressure (w) along strokes for natural feel — press harder at direction changes
-7. Use 3-8 points per stroke, not more
-8. Output ONLY the JSON object, nothing else`
+1. Use FILLS for all colored areas. Strokes alone look skeletal.
+2. Always set scene "background" color.
+3. Keep coordinates within canvas bounds (0-${canvas.width}, 0-${canvas.height}).
+4. Output ONLY the JSON object.`
 }
 
-const DRAW_INSTRUCTIONS = `You are an artist. Think about composition, mood, visual storytelling.
-- Use the full range of brush types for expressive effect
-- Name components anatomically/visually: face/eyes/left/iris, hair/bangs/strand.1
-- Spatial reasoning is approximate and expressive — prioritize visual appeal
-- Include shading and texture strokes for depth
-- Consider foreground/midground/background composition
-- Vary line weight dramatically for emphasis`
+const DRAW_INSTRUCTIONS = `Artistic illustration mode. Create beautiful hand-drawn artwork with fills and strokes.
+- Paint first, draw second: lay down fill shapes for every colored area, then add outlines on top
+- Use warm, rich color palettes. Think watercolor illustration or gouache painting.
+- Fills create the painting. Strokes create the drawing on top.
+- Vary line weight: thick near, thin far. Press harder at corners.
+- Include atmospheric fills: sky gradient (multiple overlapping fills), ground texture, clouds
+- Add character: imperfect details, scattered small strokes, texture marks`
 
 const DESIGN_INSTRUCTIONS = `You are a designer. Think about spatial logic, proportion, function, legibility.
 - Use restrained brush types: mostly round and pencil, with light watercolor fills for zones

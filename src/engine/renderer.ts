@@ -1,30 +1,32 @@
 // @renderer
-import type { Scene, SceneNode, StrokeNode, Component, RenderOptions } from './types'
+import type { Scene, SceneNode, StrokeNode, FillNode, Component, RenderOptions } from './types'
 import { interpolateSpline } from './spline'
 import { applyWobble, applyTaper, applyOvershoot } from './wobble'
 import { renderBrushStroke } from './brush'
 
-// @renderer-collect-strokes
-export interface FlatStroke {
-  node: StrokeNode
+// @renderer-collect-elements
+export interface FlatElement {
+  node: StrokeNode | FillNode
   transforms: Component['transform'][]
   depth: number
 }
 
-export function collectStrokes(scene: Scene): FlatStroke[] {
-  const strokes: FlatStroke[] = []
-  walkNode(scene.root, [], 0, strokes)
-  strokes.sort((a, b) => a.node.layer - b.node.layer || a.depth - b.depth)
-  return strokes
+export type FlatStroke = FlatElement
+
+export function collectStrokes(scene: Scene): FlatElement[] {
+  const elements: FlatElement[] = []
+  walkNode(scene.root, [], 0, elements)
+  elements.sort((a, b) => a.node.layer - b.node.layer || a.depth - b.depth)
+  return elements
 }
 
 function walkNode(
   node: SceneNode,
   parentTransforms: Component['transform'][],
   depth: number,
-  out: FlatStroke[]
+  out: FlatElement[]
 ) {
-  if (node.type === 'stroke') {
+  if (node.type === 'stroke' || node.type === 'fill') {
     out.push({ node, transforms: [...parentTransforms], depth })
   } else {
     const transforms = [...parentTransforms, node.transform]
@@ -33,7 +35,7 @@ function walkNode(
     }
   }
 }
-// @renderer-collect-strokes-end
+// @renderer-collect-elements-end
 
 // @renderer-draw
 export function renderScene(
@@ -41,16 +43,25 @@ export function renderScene(
   scene: Scene,
   opts: RenderOptions
 ) {
-  ctx.clearRect(0, 0, scene.canvas.width, scene.canvas.height)
-  const strokes = collectStrokes(scene)
-  for (const flat of strokes) {
-    renderSingleStroke(ctx, flat, opts)
+  if (scene.background) {
+    ctx.fillStyle = scene.background
+    ctx.fillRect(0, 0, scene.canvas.width, scene.canvas.height)
+  } else {
+    ctx.clearRect(0, 0, scene.canvas.width, scene.canvas.height)
+  }
+  const elements = collectStrokes(scene)
+  for (const el of elements) {
+    if (el.node.type === 'fill') {
+      renderSingleFill(ctx, el as FlatElement & { node: FillNode }, opts)
+    } else {
+      renderSingleStroke(ctx, el as FlatElement & { node: StrokeNode }, opts)
+    }
   }
 }
 
 export function renderSingleStroke(
   ctx: CanvasRenderingContext2D,
-  flat: FlatStroke,
+  flat: FlatElement & { node: StrokeNode },
   opts: RenderOptions
 ) {
   const { node, transforms } = flat
@@ -63,7 +74,7 @@ export function renderSingleStroke(
     ctx.translate(-t.origin[0], -t.origin[1])
   }
 
-  ctx.fillStyle = '#1a1a1a'
+  ctx.fillStyle = node.brush.color || '#1a1a1a'
 
   let points = interpolateSpline(node.points, node.tension)
   const strokeSeed = hashString(node.name) + opts.seed
@@ -72,6 +83,45 @@ export function renderSingleStroke(
   points = applyOvershoot(points, opts.fidelity, strokeSeed + 999)
 
   renderBrushStroke(ctx, points, node.brush, { ...opts, seed: strokeSeed })
+
+  ctx.restore()
+}
+
+export function renderSingleFill(
+  ctx: CanvasRenderingContext2D,
+  flat: FlatElement & { node: FillNode },
+  opts: RenderOptions
+) {
+  const { node, transforms } = flat
+  if (node.points.length < 3) return
+
+  ctx.save()
+  for (const t of transforms) {
+    ctx.translate(t.origin[0] + t.position[0], t.origin[1] + t.position[1])
+    ctx.rotate(t.rotation)
+    ctx.scale(t.scale[0], t.scale[1])
+    ctx.translate(-t.origin[0], -t.origin[1])
+  }
+
+  const fillPoints = node.points.map(p => ({
+    x: p.x, y: p.y, w: 1, o: 1, h: 1
+  }))
+  let interpolated = interpolateSpline(fillPoints, node.tension)
+
+  const seed = hashString(node.name) + opts.seed
+  const wobbleOpts = { ...opts, wobble: opts.wobble * 0.3 }
+  interpolated = applyWobble(interpolated, wobbleOpts, seed)
+
+  ctx.globalAlpha = node.opacity
+  ctx.fillStyle = node.color
+  ctx.beginPath()
+  ctx.moveTo(interpolated[0].x, interpolated[0].y)
+  for (let i = 1; i < interpolated.length; i++) {
+    ctx.lineTo(interpolated[i].x, interpolated[i].y)
+  }
+  ctx.closePath()
+  ctx.fill()
+  ctx.globalAlpha = 1
 
   ctx.restore()
 }
@@ -85,4 +135,5 @@ function hashString(s: string): number {
   }
   return Math.abs(h)
 }
+export { hashString }
 // @renderer-utils-end

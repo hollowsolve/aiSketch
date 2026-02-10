@@ -5,6 +5,7 @@ import type { Scene, Brush } from '@engine/types'
 function b(overrides: Partial<Brush> = {}): Brush {
   return {
     type: 'round',
+    color: '#1a1a1a',
     size: 3,
     opacity: 0.9,
     hardness: 0.8,
@@ -26,12 +27,134 @@ export const HERO_SCENE: Scene = {
   name: 'cozy cabin',
   version: '1.0',
   mode: 'draw',
+  background: '#e8dfd0',
   canvas: { width: 900, height: 500 },
   root: {
     name: 'scene',
     type: 'component',
     transform: t(),
     children: [
+      {
+        name: 'sky-fill',
+        type: 'fill',
+        layer: 0,
+        tension: 0.3,
+        color: '#b5cde0',
+        opacity: 0.7,
+        points: [
+          { x: 0, y: 0 }, { x: 900, y: 0 }, { x: 900, y: 320 }, { x: 0, y: 330 },
+        ],
+      },
+      {
+        name: 'ground-fill',
+        type: 'fill',
+        layer: 0,
+        tension: 0.4,
+        color: '#7a9a5e',
+        opacity: 0.45,
+        points: [
+          { x: 0, y: 330 }, { x: 300, y: 360 }, { x: 600, y: 355 }, { x: 900, y: 340 }, { x: 900, y: 500 }, { x: 0, y: 500 },
+        ],
+      },
+      {
+        name: 'mountain-fill-left',
+        type: 'fill',
+        layer: 0,
+        tension: 0.4,
+        color: '#8a9eb5',
+        opacity: 0.35,
+        points: [
+          { x: -20, y: 330 }, { x: 100, y: 200 }, { x: 200, y: 180 }, { x: 320, y: 320 },
+        ],
+      },
+      {
+        name: 'mountain-fill-center',
+        type: 'fill',
+        layer: 0,
+        tension: 0.35,
+        color: '#7b8fa6',
+        opacity: 0.4,
+        points: [
+          { x: 240, y: 330 }, { x: 400, y: 180 }, { x: 450, y: 155 }, { x: 600, y: 310 },
+        ],
+      },
+      {
+        name: 'mountain-fill-right',
+        type: 'fill',
+        layer: 0,
+        tension: 0.4,
+        color: '#95a8bb',
+        opacity: 0.3,
+        points: [
+          { x: 540, y: 325 }, { x: 700, y: 200 }, { x: 790, y: 190 }, { x: 930, y: 320 },
+        ],
+      },
+      {
+        name: 'treeline-fill-left',
+        type: 'fill',
+        layer: 1,
+        tension: 0.5,
+        color: '#3d6b42',
+        opacity: 0.4,
+        points: [
+          { x: 0, y: 340 }, { x: 60, y: 290 }, { x: 140, y: 270 }, { x: 240, y: 320 }, { x: 240, y: 350 }, { x: 0, y: 350 },
+        ],
+      },
+      {
+        name: 'treeline-fill-right',
+        type: 'fill',
+        layer: 1,
+        tension: 0.5,
+        color: '#3d6b42',
+        opacity: 0.4,
+        points: [
+          { x: 600, y: 340 }, { x: 680, y: 280 }, { x: 780, y: 275 }, { x: 900, y: 320 }, { x: 900, y: 350 }, { x: 600, y: 350 },
+        ],
+      },
+      {
+        name: 'cabin-body-fill',
+        type: 'fill',
+        layer: 1,
+        tension: 0.1,
+        color: '#8b6140',
+        opacity: 0.75,
+        points: [
+          { x: 350, y: 375 }, { x: 350, y: 310 }, { x: 530, y: 310 }, { x: 530, y: 375 },
+        ],
+      },
+      {
+        name: 'cabin-roof-fill',
+        type: 'fill',
+        layer: 1,
+        tension: 0.1,
+        color: '#6b3520',
+        opacity: 0.7,
+        points: [
+          { x: 335, y: 315 }, { x: 440, y: 250 }, { x: 545, y: 315 },
+        ],
+      },
+      {
+        name: 'tree-left-foliage-fill',
+        type: 'fill',
+        layer: 1,
+        tension: 0.5,
+        color: '#2e6b3e',
+        opacity: 0.55,
+        points: [
+          { x: 250, y: 300 }, { x: 260, y: 260 }, { x: 280, y: 240 }, { x: 300, y: 250 }, { x: 310, y: 290 },
+        ],
+      },
+      {
+        name: 'tree-right-foliage-fill',
+        type: 'fill',
+        layer: 1,
+        tension: 0.5,
+        color: '#2e6b3e',
+        opacity: 0.55,
+        points: [
+          { x: 585, y: 290 }, { x: 600, y: 250 }, { x: 625, y: 230 }, { x: 650, y: 245 }, { x: 660, y: 280 },
+        ],
+      },
       {
         name: 'mountains',
         type: 'component',
@@ -42,7 +165,7 @@ export const HERO_SCENE: Scene = {
             type: 'stroke',
             layer: 0,
             tension: 0.4,
-            brush: b({ size: 3, opacity: 0.18, hardness: 0.5 }),
+            brush: b({ type: 'watercolor', color: '#6b7fa3', size: 6, opacity: 0.12, hardness: 0.3 }),
             points: [
               { x: -20, y: 320, w: 1, o: 0.3, h: 0.5 },
               { x: 100, y: 200, w: 1.1, o: 0.35, h: 0.5 },
@@ -55,7 +178,7 @@ export const HERO_SCENE: Scene = {
             type: 'stroke',
             layer: 0,
             tension: 0.3,
-            brush: b({ size: 4, opacity: 0.22, hardness: 0.5 }),
+            brush: b({ type: 'watercolor', color: '#5a6d8a', size: 8, opacity: 0.15, hardness: 0.3 }),
             points: [
               { x: 250, y: 320, w: 1, o: 0.3, h: 0.5 },
               { x: 400, y: 180, w: 1.2, o: 0.4, h: 0.5 },
@@ -68,7 +191,7 @@ export const HERO_SCENE: Scene = {
             type: 'stroke',
             layer: 0,
             tension: 0.4,
-            brush: b({ size: 3, opacity: 0.16, hardness: 0.5 }),
+            brush: b({ type: 'watercolor', color: '#7b8faa', size: 5, opacity: 0.1, hardness: 0.3 }),
             points: [
               { x: 550, y: 315, w: 1, o: 0.3, h: 0.5 },
               { x: 700, y: 200, w: 1.1, o: 0.35, h: 0.5 },
@@ -88,7 +211,7 @@ export const HERO_SCENE: Scene = {
             type: 'stroke',
             layer: 1,
             tension: 0.6,
-            brush: b({ size: 5, opacity: 0.25, hardness: 0.4 }),
+            brush: b({ type: 'watercolor', color: '#2d5a3d', size: 8, opacity: 0.2, hardness: 0.35 }),
             points: [
               { x: 20, y: 320, w: 1, o: 0.35, h: 0.4 },
               { x: 80, y: 275, w: 1.2, o: 0.4, h: 0.4 },
@@ -101,7 +224,7 @@ export const HERO_SCENE: Scene = {
             type: 'stroke',
             layer: 1,
             tension: 0.6,
-            brush: b({ size: 5, opacity: 0.25, hardness: 0.4 }),
+            brush: b({ type: 'watercolor', color: '#2d5a3d', size: 8, opacity: 0.2, hardness: 0.35 }),
             points: [
               { x: 620, y: 310, w: 1, o: 0.35, h: 0.4 },
               { x: 700, y: 265, w: 1.2, o: 0.4, h: 0.4 },
@@ -121,7 +244,7 @@ export const HERO_SCENE: Scene = {
             type: 'stroke',
             layer: 2,
             tension: 0.5,
-            brush: b({ size: 2.5, opacity: 0.35 }),
+            brush: b({ color: '#4a6741', size: 2.5, opacity: 0.35 }),
             points: [
               { x: 0, y: 380, w: 1, o: 0.4, h: 0.7 },
               { x: 300, y: 372, w: 1, o: 0.45, h: 0.7 },
@@ -134,7 +257,7 @@ export const HERO_SCENE: Scene = {
             type: 'stroke',
             layer: 2,
             tension: 0.6,
-            brush: b({ size: 2, opacity: 0.2 }),
+            brush: b({ color: '#8b7355', size: 2, opacity: 0.2 }),
             points: [
               { x: 450, y: 500, w: 1.5, o: 0.25, h: 0.6 },
               { x: 435, y: 420, w: 1.1, o: 0.22, h: 0.6 },
@@ -153,7 +276,7 @@ export const HERO_SCENE: Scene = {
             type: 'stroke',
             layer: 3,
             tension: 0.15,
-            brush: b({ size: 3.5, opacity: 0.8 }),
+            brush: b({ color: '#5c3a1e', size: 3.5, opacity: 0.8 }),
             points: [
               { x: 350, y: 370, w: 1, o: 0.9, h: 0.9 },
               { x: 350, y: 310, w: 1, o: 0.9, h: 0.9 },
@@ -167,7 +290,7 @@ export const HERO_SCENE: Scene = {
             type: 'stroke',
             layer: 3,
             tension: 0.12,
-            brush: b({ size: 4, opacity: 0.85 }),
+            brush: b({ color: '#6b3520', size: 4, opacity: 0.85 }),
             points: [
               { x: 335, y: 315, w: 1, o: 0.9, h: 0.9 },
               { x: 440, y: 250, w: 1.2, o: 0.9, h: 0.9 },
@@ -179,7 +302,7 @@ export const HERO_SCENE: Scene = {
             type: 'stroke',
             layer: 4,
             tension: 0.15,
-            brush: b({ size: 2.5, opacity: 0.7 }),
+            brush: b({ color: '#3a2518', size: 2.5, opacity: 0.7 }),
             points: [
               { x: 420, y: 370, w: 1, o: 0.8, h: 0.9 },
               { x: 420, y: 335, w: 1, o: 0.8, h: 0.9 },
@@ -192,7 +315,7 @@ export const HERO_SCENE: Scene = {
             type: 'stroke',
             layer: 4,
             tension: 0.15,
-            brush: b({ size: 2, opacity: 0.6 }),
+            brush: b({ color: '#c9a84c', size: 2, opacity: 0.6 }),
             points: [
               { x: 370, y: 325, w: 1, o: 0.7, h: 0.9 },
               { x: 370, y: 340, w: 1, o: 0.7, h: 0.9 },
@@ -206,7 +329,7 @@ export const HERO_SCENE: Scene = {
             type: 'stroke',
             layer: 4,
             tension: 0.15,
-            brush: b({ size: 2, opacity: 0.6 }),
+            brush: b({ color: '#c9a84c', size: 2, opacity: 0.6 }),
             points: [
               { x: 480, y: 325, w: 1, o: 0.7, h: 0.9 },
               { x: 480, y: 340, w: 1, o: 0.7, h: 0.9 },
@@ -227,7 +350,7 @@ export const HERO_SCENE: Scene = {
             type: 'stroke',
             layer: 4,
             tension: 0.15,
-            brush: b({ size: 3, opacity: 0.7 }),
+            brush: b({ color: '#6b4030', size: 3, opacity: 0.7 }),
             points: [
               { x: 485, y: 275, w: 1, o: 0.8, h: 0.9 },
               { x: 485, y: 248, w: 1, o: 0.8, h: 0.9 },
@@ -240,7 +363,7 @@ export const HERO_SCENE: Scene = {
             type: 'stroke',
             layer: 5,
             tension: 0.8,
-            brush: b({ size: 4, opacity: 0.1, hardness: 0.3, spacing: 0.3 }),
+            brush: b({ color: '#9ca8b8', size: 4, opacity: 0.1, hardness: 0.3, spacing: 0.3 }),
             points: [
               { x: 495, y: 248, w: 0.8, o: 0.12, h: 0.3 },
               { x: 500, y: 215, w: 1.2, o: 0.09, h: 0.3 },
@@ -260,7 +383,7 @@ export const HERO_SCENE: Scene = {
             type: 'stroke',
             layer: 6,
             tension: 0.3,
-            brush: b({ size: 3, opacity: 0.7 }),
+            brush: b({ color: '#4a3525', size: 3, opacity: 0.7 }),
             points: [
               { x: 280, y: 380, w: 1, o: 0.8, h: 0.9 },
               { x: 280, y: 310, w: 0.8, o: 0.75, h: 0.9 },
@@ -272,7 +395,7 @@ export const HERO_SCENE: Scene = {
             type: 'stroke',
             layer: 6,
             tension: 0.6,
-            brush: b({ size: 6, opacity: 0.3, hardness: 0.4 }),
+            brush: b({ type: 'watercolor', color: '#2e6b3e', size: 10, opacity: 0.25, hardness: 0.35 }),
             points: [
               { x: 255, y: 295, w: 1, o: 0.35, h: 0.4 },
               { x: 270, y: 260, w: 1.2, o: 0.4, h: 0.4 },
@@ -285,7 +408,7 @@ export const HERO_SCENE: Scene = {
             type: 'stroke',
             layer: 6,
             tension: 0.3,
-            brush: b({ size: 3.5, opacity: 0.7 }),
+            brush: b({ color: '#4a3525', size: 3.5, opacity: 0.7 }),
             points: [
               { x: 620, y: 385, w: 1, o: 0.8, h: 0.9 },
               { x: 620, y: 310, w: 0.8, o: 0.75, h: 0.9 },
@@ -297,7 +420,7 @@ export const HERO_SCENE: Scene = {
             type: 'stroke',
             layer: 6,
             tension: 0.6,
-            brush: b({ size: 7, opacity: 0.3, hardness: 0.4 }),
+            brush: b({ type: 'watercolor', color: '#2e6b3e', size: 12, opacity: 0.25, hardness: 0.35 }),
             points: [
               { x: 590, y: 285, w: 1, o: 0.35, h: 0.4 },
               { x: 610, y: 250, w: 1.3, o: 0.42, h: 0.4 },
