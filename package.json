@@ -7,9 +7,11 @@
     "build": "esbuild src/index.ts --bundle --format=esm --outfile=dist/aisketch.js --minify --sourcemap",
     "build:dev": "esbuild src/index.ts --bundle --format=esm --outfile=dist/aisketch.js --sourcemap",
     "build:site": "cd site && npx vite build",
+    "build:app": "cd app && npx vite build",
     "deploy": "npm run build:site && npx wrangler deploy",
     "dev": "npx wrangler dev",
-    "dev:site": "cd site && npx vite"
+    "dev:site": "cd site && npx vite",
+    "dev:app": "cd app && npx vite"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250124.0",

@@ -1,5 +1,6 @@
 // @handle-sketch
 import type { Env } from '../index'
+import { deductCredit } from './auth'
 
 interface SketchRequest {
   prompt: string
@@ -63,6 +64,12 @@ export async function handleSketch(request: Request, env: Env, ctx: ExecutionCon
 
   if (!await checkRateLimit(env, auth.keyId)) {
     return json({ error: 'Rate limit exceeded. Max 30 requests per minute.' }, 429)
+  }
+
+  const apiKey = request.headers.get('X-API-Key') || request.headers.get('Authorization')?.replace('Bearer ', '') || ''
+  const creditResult = await deductCredit(env, apiKey)
+  if (!creditResult.ok) {
+    return json({ error: creditResult.error || 'No credits remaining' }, 402)
   }
 
   let body: SketchRequest

@@ -72,7 +72,7 @@ File: src/index.ts
 ---
 
 @worker-entry
-Cloudflare Worker entry. Routes /v1/sketch, /v1/health, and static site assets.
+Cloudflare Worker entry. Routes /v1/auth/*, /v1/sketch, /v1/health, and static site assets.
 File: worker/index.ts
 Env: ANTHROPIC_API_KEY, KV_SESSIONS, ENVIRONMENT, __STATIC_CONTENT
 Sub-tags:
@@ -81,7 +81,7 @@ Sub-tags:
 ---
 
 @handle-sketch
-POST /v1/sketch handler. Validates request, authenticates API key, rate limits, calls Claude, returns scene graph.
+POST /v1/sketch handler. Validates request, authenticates API key, rate limits, deducts credits, calls Claude, returns scene graph.
 File: worker/routes/sketch.ts
 Sub-tags:
   @handle-sketch-auth — API key validation via KV
@@ -187,3 +187,159 @@ File: site/index.html (HTML)
 @site-footer
 Footer section.
 File: site/index.html (HTML)
+
+---
+
+@handle-auth
+Auth system: signup, login, logout, session management, API key CRUD, credit management.
+File: worker/routes/auth.ts
+Sub-tags:
+  @handle-auth-types — User, Session, ApiKeyRecord interfaces
+  @handle-auth-utils — json(), generateId(), hashPassword(), session cookie helpers, getSession(), getUser()
+  @handle-auth-signup — POST /v1/auth/signup, creates user with 50 free credits
+  @handle-auth-login — POST /v1/auth/login, password verification, session creation
+  @handle-auth-logout — POST /v1/auth/logout, clears session cookie
+  @handle-auth-me — GET /v1/auth/me, returns user + API keys
+  @handle-auth-apikeys — POST /v1/auth/keys (create), /keys/revoke, /keys/credits (transfer from account)
+  @handle-auth-credits — POST /v1/auth/credits, add credits to account
+  @handle-auth-deduct — deductCredit(), checks key credits then user credits, used by /v1/sketch
+  @handle-auth-router — handleAuth() route dispatcher
+
+---
+
+@site-auth
+Auth UI: login, signup, dashboard overlay pages on the landing site.
+File: site/src/auth.ts
+Sub-tags:
+  @site-auth-state — AuthUser, ApiKey interfaces, currentUser state
+  @site-auth-api — api() fetch wrapper, checkSession()
+  @site-auth-router — initAuth(), hash-based routing, updateNavButton()
+  @site-auth-overlay — getOverlay(), hideAuthOverlay()
+  @site-auth-login — renderLogin() form
+  @site-auth-signup — renderSignup() form
+  @site-auth-dashboard — renderDashboard(): credits card, API keys list, create/revoke/fund keys
+
+---
+
+@site-auth-css
+Auth + dashboard styles. Dark theme consistent with landing page.
+File: site/src/auth.css
+Sub-tags:
+  @site-auth-css-overlay — fixed overlay with backdrop blur
+  @site-auth-css-card — auth card, close button, title, subtitle
+  @site-auth-css-form — form fields, inputs, error, submit button, switch link
+  @site-auth-css-dashboard — credits card, API key rows, actions, new key notice
+
+---
+
+@app-vite-config
+Vite config for web app. Aliases @engine to ../src/engine.
+File: app/vite.config.ts
+
+---
+
+@app-types
+App-level type definitions: AppMode, ToolType, ViewportState, SelectionState, DrawState, DesignConfig, LayerInfo, AppState.
+File: app/src/types.ts
+
+---
+
+@app-state
+Centralized app state store with subscribe/notify pattern.
+File: app/src/state.ts
+Sub-tags:
+  @app-state-defaults — DEFAULT_DESIGN_CONFIG, createEmptyScene(), DEFAULT_LAYERS
+  @app-state-store — Store class: get/set/subscribe, setMode, setTool, setViewport, pushUndo, undo, redo
+
+---
+
+@app-viewport
+Canvas viewport: rendering, pan/zoom, pointer input routing, drawing, selection, line/rect tools.
+File: app/src/viewport.ts
+Sub-tags:
+  @app-viewport-init — canvas setup, resize, event listeners, DPR handling
+  @app-viewport-render — render loop: background grid, scene rendering, selection box overlay
+  @app-viewport-input — pointer event routing: pan, draw, select, line, rect
+  @app-viewport-draw-stroke — freehand stroke capture: start/continue/finish, screenToScene conversion
+  @app-viewport-selection — click hit test + drag box selection, collectHitsInBox
+  @app-viewport-line-tool — line tool: snap-to-grid, commit as 2-point stroke
+  @app-viewport-rect-tool — rectangle tool: 4 stroke sides as component
+  @app-viewport-snap — snapToGrid() for design mode
+  @app-viewport-zoom-controls — zoomIn, zoomOut, zoomFit, updateZoomDisplay
+
+---
+
+@app-design
+Design mode overlays: sheet border, title block, scale bar, dimensions, annotations, zone labels.
+File: app/src/design.ts
+Sub-tags:
+  @app-design-overlays — renderDesignOverlays() entry point
+  @app-design-sheet-border — double-line sheet border with margins
+  @app-design-title-block — title block with project name, scale, sheet, date, revision
+  @app-design-scale-bar — alternating fill scale bar with real-unit labels
+  @app-design-dimensions — auto dimension lines on components with designMeta.area
+  @app-design-annotations — annotation labels from annotation-* named components
+  @app-design-zone-labels — room type + area labels with translucent zone fills
+  @app-design-utils — computeBBox() for component bounding boxes
+
+---
+
+@app-generate
+AI generation flow: prompt submission, SSE streaming, scene merging with animation.
+File: app/src/generate.ts
+Sub-tags:
+  @app-generate-flow — generateFromPrompt(), handleSSEResponse(), applyGeneratedScene()
+  @app-generate-ui — updatePromptUI(), showError()
+
+---
+
+@app-panels
+Side panel UI: tool grid, brush picker, color picker, layer list, properties panel.
+File: app/src/panels.ts
+Sub-tags:
+  @app-panels-tools — SKETCH_TOOLS, DESIGN_TOOLS, renderToolGrid()
+  @app-panels-brush — brush type selector, size/opacity/hardness sliders
+  @app-panels-color — 15-color palette grid + custom color input
+  @app-panels-layers — layer list with visibility/lock toggles, addLayer()
+  @app-panels-properties — design config (scale, grid, snap) + selection info
+  @app-panels-init — initPanels() wires store subscriptions
+
+---
+
+@app-fileops
+File operations and keyboard shortcuts.
+File: app/src/fileops.ts
+Sub-tags:
+  @app-fileops-new — newFile()
+  @app-fileops-open — openFile() via file input, parses .aisketch JSON
+  @app-fileops-save — saveFile() as .aisketch JSON download
+  @app-fileops-export-png — exportPNG() via offscreen canvas at 2x
+  @app-fileops-menu — file dropdown menu with keyboard shortcut labels
+  @app-fileops-keyboard — keyboard shortcuts: undo/redo, save/open/new, tool hotkeys, delete selected
+
+---
+
+@app-main
+App entry point. Initializes all modules, mode switcher, zoom controls, undo/redo buttons.
+File: app/src/main.ts
+Sub-tags:
+  @app-main-init — init(), initModeSwitcher(), updateModeUI(), initZoomControls(), initUndoRedoButtons()
+
+---
+
+@app-css
+App styles. Light theme, Inter font.
+File: app/src/style.css
+Sub-tags:
+  @app-css-reset — box-sizing, body defaults, font smoothing
+  @app-css-layout — app flex column, workspace flex row, canvas area
+  @app-css-toolbar — top toolbar: logo, mode switcher, icon buttons, divider
+  @app-css-panels — side panels: width, sections, headers, buttons
+  @app-css-tools — tool grid: 4-column grid, active/hover states
+  @app-css-brush — brush type row, slider rows (label + range + value)
+  @app-css-color — color palette grid, custom color input, hex label
+  @app-css-layers — layer rows: visibility, lock, name
+  @app-css-properties — property rows: label + select/checkbox
+  @app-css-prompt — floating prompt bar: input + submit, error toast
+  @app-css-zoom — zoom controls: +/−/fit buttons, zoom level label
+  @app-css-menu — dropdown menu: items, shortcuts, separators

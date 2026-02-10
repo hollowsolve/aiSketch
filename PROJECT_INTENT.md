@@ -76,6 +76,19 @@ aiSketch/
 │   ├── index.ts            — Worker entry, routing
 │   └── routes/
 │       └── sketch.ts       — /v1/sketch handler + LLM prompt
+├── app/
+│   ├── src/
+│   │   ├── main.ts          — App entry point
+│   │   ├── types.ts         — App type definitions
+│   │   ├── state.ts         — Centralized state store
+│   │   ├── viewport.ts      — Canvas viewport, pan/zoom, input
+│   │   ├── design.ts        — Design mode overlays
+│   │   ├── generate.ts      — AI generation flow
+│   │   ├── panels.ts        — Side panels (tools, brush, color, layers)
+│   │   ├── fileops.ts       — File ops + keyboard shortcuts
+│   │   └── style.css        — App styles
+│   ├── index.html           — App HTML shell
+│   └── vite.config.ts       — Vite config
 ├── dist/                   — Built client library
 ├── wrangler.toml           — Cloudflare Worker config
 ├── package.json

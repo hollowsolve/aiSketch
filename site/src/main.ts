@@ -3,6 +3,7 @@ import { animateScene } from '@engine/index'
 import type { AnimationHandle } from '@engine/animator'
 import type { Scene } from '@engine/types'
 import { HERO_SCENE, DRAW_MODE_SCENE, DESIGN_MODE_SCENE, DEMO_SCENES } from './scenes'
+import { initAuth } from './auth'
 import './style.css'
 
 // @site-hero-animation
@@ -284,6 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initModeCanvases()
   initDemo()
   initApiTabs()
+  initAuth()
 })
 // @site-init-end
 // @site-main-end

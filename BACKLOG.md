@@ -11,8 +11,14 @@ Pending work. Check off when done. Add context as you discover it.
 - [x] Project setup (TypeScript, esbuild, wrangler) — Session 001
 - [x] Knowledge architecture (BRAIN, PROJECT_INTENT, PROJECT_SPECIFICS, BACKLOG, PROCEDURES) — Session 001
 - [ ] Deploy worker to Cloudflare (needs ANTHROPIC_API_KEY secret)
-- [ ] Set up API key provisioning system
+- [x] Set up API key provisioning system — Session 003
+- [x] Auth system (passwordless email codes via Resend, sessions, credits, API key CRUD) — Session 003
+- [x] Dashboard UI (account credits, API keys, create/revoke/fund) — Session 003
+- [x] Credit deduction on /v1/sketch (key credits → account credits fallback) — Session 003
 - [ ] Set up domain routing (e.g., api.aisketch.dev or aisketch.volcanic.dev)
+- [ ] Set RESEND_API_KEY secret on Cloudflare Worker (same Resend account as volcanic.dev)
+- [ ] Deploy + test full auth flow (email code → dashboard → API keys)
+- [ ] Payment integration (Stripe) for credit purchases
 - [x] Landing page / website at aisketch.app — Session 002
 - [x] Static site serving via @cloudflare/kv-asset-handler — Session 002
 - [x] Animator perf fix: OffscreenCanvas caching for completed strokes — Session 002
@@ -39,36 +45,36 @@ Pending work. Check off when done. Add context as you discover it.
 Build as web app first (app/ directory, Vite + vanilla TS), wrap native later (Tauri/Electron).
 
 ### Sketch Mode (freehand creative)
-- [ ] App shell — mode switcher (Sketch/Design), canvas viewport, toolbar, panels
-- [ ] Canvas viewport — pan, zoom, infinite canvas with engine rendering
-- [ ] AI generation flow — prompt bar, API call, streaming, animation onto canvas
-- [ ] Freehand drawing — pointer input → stroke capture → live preview → commit to scene graph
-- [ ] Selection + transforms — hit testing, selection box, move/scale/rotate handles
-- [ ] Undo/redo — command pattern on scene graph mutations
-- [ ] File operations — new, open, save (.aisketch JSON), export PNG
-- [ ] Layer panel, brush picker, color picker
+- [x] App shell — mode switcher (Sketch/Design), canvas viewport, toolbar, panels — Session 003
+- [x] Canvas viewport — pan, zoom, infinite canvas with engine rendering — Session 003
+- [x] AI generation flow — prompt bar, API call, streaming, animation onto canvas — Session 003
+- [x] Freehand drawing — pointer input → stroke capture → live preview → commit to scene graph — Session 003
+- [x] Selection + transforms — hit testing, selection box, move/scale/rotate handles — Session 003
+- [x] Undo/redo — command pattern on scene graph mutations — Session 003
+- [x] File operations — new, open, save (.aisketch JSON), export PNG — Session 003
+- [x] Layer panel, brush picker, color picker — Session 003
 
 ### Design Mode (professional design sheets)
-- [ ] Dimension lines with auto-calculated real measurements
-- [ ] Scale system (1:50, 1:100, etc.) with scale bar
-- [ ] Grid/snap system with configurable spacing
-- [ ] Zone fills (rooms, areas) with labels and area calculations
+- [x] Dimension lines with auto-calculated real measurements — Session 003
+- [x] Scale system (1:50, 1:100, etc.) with scale bar — Session 003
+- [x] Grid/snap system with configurable spacing — Session 003
+- [x] Zone fills (rooms, areas) with labels and area calculations — Session 003
 - [ ] Constraint system (walls connect, doors snap to walls)
-- [ ] Annotation system (callouts, notes, specifications)
-- [ ] Sheet border with title block (project name, scale, date, revision)
-- [ ] Layer system: structure, dimensions, annotations, furniture, zones
+- [x] Annotation system (callouts, notes, specifications) — Session 003
+- [x] Sheet border with title block (project name, scale, date, revision) — Session 003
+- [x] Layer system: structure, dimensions, annotations, furniture, zones — Session 003
 
 ## Editor (Phase 2)
 
-- [ ] Hit testing (point-in-stroke, point-in-component-bbox)
-- [ ] Selection system (single stroke, component, multi-select)
-- [ ] Transform handles (move, scale, rotate)
+- [x] Hit testing (point-in-stroke, point-in-component-bbox) — Session 003
+- [x] Selection system (single stroke, component, multi-select) — Session 003
+- [ ] Transform handles (move, scale, rotate) — drag handles for selected items
 - [ ] Reparenting / tree manipulation
 
 ## Exports (Phase 3)
 
 - [ ] Static SVG export
-- [ ] PNG export (canvas toBlob)
+- [x] PNG export (canvas toBlob) — Session 003
 - [ ] Animated SVG export
 - [ ] Flat stroke JSON export
 - [ ] Lottie export

@@ -1,5 +1,6 @@
 // @worker-entry
 import { handleSketch } from './routes/sketch'
+import { handleAuth } from './routes/auth'
 import { getAssetFromKV, NotFoundError } from '@cloudflare/kv-asset-handler'
 // @ts-expect-error — injected by wrangler at build time for [site] config
 import manifestJSON from '__STATIC_CONTENT_MANIFEST'
@@ -8,6 +9,7 @@ const assetManifest = JSON.parse(manifestJSON)
 
 export interface Env {
   ANTHROPIC_API_KEY: string
+  RESEND_API_KEY: string
   KV_SESSIONS: KVNamespace
   ENVIRONMENT: string
   __STATIC_CONTENT: KVNamespace
@@ -31,7 +33,14 @@ export default {
 
     let response: Response
 
-    if (path === '/v1/sketch' && method === 'POST') {
+    if (path.startsWith('/v1/auth/')) {
+      const authResponse = await handleAuth(path, method, request, env)
+      if (authResponse) {
+        response = authResponse
+      } else {
+        response = new Response('Not found', { status: 404 })
+      }
+    } else if (path === '/v1/sketch' && method === 'POST') {
       response = await handleSketch(request, env, ctx)
     } else if (path === '/v1/health' && method === 'GET') {
       response = new Response(JSON.stringify({

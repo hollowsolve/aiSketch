@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>aiSketch</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div id="app">
+    <header id="toolbar" class="toolbar">
+      <div class="toolbar-left">
+        <span class="logo">aiSketch</span>
+        <div class="mode-switcher">
+          <button class="mode-btn active" data-mode="sketch">Sketch</button>
+          <button class="mode-btn" data-mode="design">Design</button>
+        </div>
+      </div>
+      <div class="toolbar-center" id="tool-options"></div>
+      <div class="toolbar-right">
+        <button class="toolbar-icon-btn" id="btn-undo" title="Undo">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h13a4 4 0 010 8H7"/><path d="M3 10l4-4M3 10l4 4"/></svg>
+        </button>
+        <button class="toolbar-icon-btn" id="btn-redo" title="Redo">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10H8a4 4 0 000 8h9"/><path d="M21 10l-4-4M21 10l-4 4"/></svg>
+        </button>
+        <span class="toolbar-divider"></span>
+        <button class="toolbar-icon-btn" id="btn-file" title="File">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <aside id="left-panel" class="panel panel-left">
+        <div class="panel-section" id="tools-section">
+          <div class="panel-section-title">Tools</div>
+          <div class="tool-grid" id="tool-grid"></div>
+        </div>
+        <div class="panel-section" id="brush-section">
+          <div class="panel-section-title">Brush</div>
+          <div id="brush-picker"></div>
+        </div>
+        <div class="panel-section" id="color-section">
+          <div class="panel-section-title">Color</div>
+          <div id="color-picker"></div>
+        </div>
+      </aside>
+
+      <main class="canvas-area" id="canvas-area">
+        <canvas id="main-canvas"></canvas>
+        <div class="prompt-bar" id="prompt-bar">
+          <input type="text" id="prompt-input" placeholder="Describe what to draw..." />
+          <button id="prompt-submit">Generate</button>
+        </div>
+        <div class="zoom-controls" id="zoom-controls">
+          <button id="btn-zoom-in" class="zoom-btn">+</button>
+          <span id="zoom-level">100%</span>
+          <button id="btn-zoom-out" class="zoom-btn">−</button>
+          <button id="btn-zoom-fit" class="zoom-btn">Fit</button>
+        </div>
+      </main>
+
+      <aside id="right-panel" class="panel panel-right">
+        <div class="panel-section" id="layers-section">
+          <div class="panel-section-header">
+            <span class="panel-section-title">Layers</span>
+            <button class="panel-btn" id="btn-add-layer" title="Add layer">+</button>
+          </div>
+          <div id="layer-list" class="layer-list"></div>
+        </div>
+        <div class="panel-section" id="properties-section">
+          <div class="panel-section-title">Properties</div>
+          <div id="properties-panel"></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+  <div id="file-menu" class="dropdown-menu hidden"></div>
+  <div id="context-menu" class="dropdown-menu hidden"></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
