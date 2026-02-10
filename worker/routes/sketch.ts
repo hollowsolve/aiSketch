@@ -120,7 +120,7 @@ async function batchResponse(
   mode: string,
   canvas: { width: number; height: number }
 ): Promise<Response> {
-  const maxTokens = mode === 'design' ? 32768 : 65536
+  const maxTokens = mode === 'design' ? 32768 : 64000
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -169,7 +169,7 @@ async function streamResponse(
   mode: string,
   canvas: { width: number; height: number }
 ): Promise<Response> {
-  const maxTokens = mode === 'design' ? 32768 : 65536
+  const maxTokens = mode === 'design' ? 32768 : 64000
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
